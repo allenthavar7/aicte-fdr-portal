@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded FDR documents
+backend/src/uploads/fdr/
+backend/uploads/fdr/
+
+# Build files
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# AI/editor generated configuration
+.agents/
+.claude/
+.cursor/
+.devin/
+
+# OS files
+.DS_Store
+Thumbs.db
