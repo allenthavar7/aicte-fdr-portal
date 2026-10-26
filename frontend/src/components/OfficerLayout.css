@@ -1,0 +1,139 @@
+.officer-layout {
+  --officer-sidebar-width: 220px;
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: #f3f6fa;
+  color: #10233f;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.officer-sidebar {
+  box-sizing: border-box;
+  flex: 0 0 var(--officer-sidebar-width);
+  width: var(--officer-sidebar-width);
+  min-width: var(--officer-sidebar-width);
+  height: 100vh;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  overflow-y: auto;
+  background: #06264d;
+  color: #fff;
+}
+
+.officer-brand {
+  height: 82px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  color: #09284e;
+}
+
+.brand-logo {
+  box-sizing: border-box;
+  flex: 0 0 45px;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #e4b12c;
+  border-radius: 50%;
+  background: #f4c542;
+  color: #08294e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.brand-text {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.brand-subtitle {
+  display: block;
+  margin-top: 4px;
+  color: #53657d;
+  font-weight: 400;
+}
+
+.officer-nav {
+  padding: 18px 0;
+}
+
+.nav-link {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  padding: 13px 20px;
+  border-left: 3px solid transparent;
+  color: #dbe8f7;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  border-left-color: #4ba3ff;
+  background: #0d4b91;
+  color: #fff;
+}
+
+.nav-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  text-align: center;
+  font-size: 17px;
+}
+
+.nav-count {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.officer-main {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+@media (max-width: 950px) {
+  .officer-layout {
+    --officer-sidebar-width: 75px;
+  }
+
+  .officer-brand {
+    justify-content: center;
+    padding: 12px 8px;
+  }
+
+  .brand-text,
+  .nav-link > span:not(.nav-icon),
+  .nav-count {
+    display: none;
+  }
+
+  .nav-link {
+    justify-content: center;
+    padding: 14px;
+  }
+}

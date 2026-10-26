@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
+  FdrPriorityBadge
+} from "../components/FdrPriority";
+import OfficerFdrDetailsModal from "../components/OfficerFdrDetailsModal";
+import { getFdrPriority } from "../utils/fdrPriority";
+import {
   getOfficerAuditLogs,
   getOfficerFdrs,
+  getOfficerFdrDetail,
+  getOfficerFdrDocument,
   getOfficerVerificationQueue,
   getOfficerInstitution,
   getOfficerInstitutions,
@@ -10,7 +17,6 @@ import {
   getOfficerNotifications,
   getOfficerProfile,
   getOfficerReleaseRequests,
-  getOfficerReports,
   getOfficerRenewals,
   getOfficerUsers,
   markAllOfficerNotificationsRead,
@@ -19,6 +25,22 @@ import {
   reviewOfficerRenewal,
   updateOfficerProfile
 } from "../services/api";
+import OfficerLayout from "../components/OfficerLayout";
+import OfficerReports from "../components/OfficerReports";
+import { getDaysRemaining } from "../utils/officerAnalytics";
+import officerDemoData from "../../../shared/officerDemoData.json";
+
+const demoUserDetails = new Map(
+  officerDemoData.users.map((user) => [
+    user.email,
+    {
+      displayRole: user.displayRole,
+      institutionName: officerDemoData.institutions.find(
+        (institution) => institution.code === user.institutionCode
+      )?.name
+    }
+  ])
+);
 
 const titles = {
   institutions: "Institutions",
@@ -35,21 +57,6 @@ const titles = {
   renewals: "Renewals",
   alerts: "Alerts & Notifications"
 };
-
-const navItems = [
-  ["Dashboard", "/officer", "⌂"],
-  ["Institutions", "/officer/institutions", "▦"],
-  ["FDRs", "/officer/fdrs", "▤"],
-  ["Verification Queue", "/officer/verification", "✓"],
-  ["Release Requests", "/officer/release-requests", "↑"],
-  ["Renewals", "/officer/renewals", "↻"],
-  ["Reports & Analytics", "/officer/reports", "▥"],
-  ["Audit Log", "/officer/audit-log", "◴"],
-  ["Manage Users", "/officer/users", "♙"],
-  ["Master Data", "/officer/master-data", "▤"],
-  ["Settings", "/officer/settings", "⚙"],
-  ["Help & Support", "/officer/help", "?"]
-];
 
 function formatDate(value) {
   if (!value) return "—";
@@ -129,6 +136,8 @@ export default function OfficerWorkspace() {
   const [bankFilter, setBankFilter] = useState("");
   const [applicationFilter, setApplicationFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [minimumPriorityScore, setMinimumPriorityScore] = useState("");
+  const [maximumPriorityScore, setMaximumPriorityScore] = useState("");
   const [issueFilter, setIssueFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -137,6 +146,13 @@ export default function OfficerWorkspace() {
   );
   const [page, setPage] = useState(1);
   const [selectedInstitution, setSelectedInstitution] = useState(null);
+  const [selectedFdr, setSelectedFdr] = useState(null);
+  const [fdrDetailState, setFdrDetailState] = useState({
+    detail: null,
+    loading: false,
+    error: "",
+    openingDocumentId: null
+  });
   const [reviewId, setReviewId] = useState(null);
   const [renewalReviewId, setRenewalReviewId] = useState(null);
   const [reviewReason, setReviewReason] = useState("");
@@ -148,6 +164,7 @@ export default function OfficerWorkspace() {
   const token = localStorage.getItem("token");
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentSection = section === "alerts" ? "notifications" : section;
+  const selectedFdrId = selectedFdr?.id;
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -181,7 +198,7 @@ export default function OfficerWorkspace() {
             result = await getOfficerReleaseRequests(token);
             break;
           case "reports":
-            result = await getOfficerReports(token);
+            result = await getOfficerFdrs(token);
             break;
           case "audit-log":
             result = await getOfficerAuditLogs(token);
@@ -241,10 +258,55 @@ export default function OfficerWorkspace() {
     return () => { active = false; };
   }, [searchParams, token]);
 
+  useEffect(() => {
+    if (!selectedFdrId || currentSection !== "verification") {
+      return undefined;
+    }
+
+    let active = true;
+    setFdrDetailState({
+      detail: null,
+      loading: true,
+      error: "",
+      openingDocumentId: null
+    });
+    getOfficerFdrDetail(token, selectedFdrId)
+      .then((detail) => {
+        if (active) {
+          setFdrDetailState({
+            detail,
+            loading: false,
+            error: "",
+            openingDocumentId: null
+          });
+        }
+      })
+      .catch((detailError) => {
+        if (active) {
+          setFdrDetailState({
+            detail: null,
+            loading: false,
+            error: detailError.message || "Unable to load FDR details.",
+            openingDocumentId: null
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentSection, selectedFdrId, token]);
+
+  useEffect(() => {
+    if (currentSection !== "verification") {
+      setSelectedFdr(null);
+    }
+  }, [currentSection]);
+
   const fdrs = useMemo(() => data?.fdrs || [], [data]);
   const matchingFdrs = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("en-IN");
-    return fdrs.filter((fdr) => {
+    const matches = fdrs.filter((fdr) => {
       const textMatches = !normalizedQuery || [
         fdr.fdr_number,
         fdr.bank_name,
@@ -256,13 +318,10 @@ export default function OfficerWorkspace() {
       const queueStatus = ["PENDING", "FLAGGED", "FAILED"].includes(currentStatus) ||
         fdr.verification?.checks?.some((item) => item.status === "FAILED");
       const checks = fdr.verification?.checks || [];
+      const priority = getFdrPriority(fdr);
       const bankStatus = String(
         fdr.verification?.bank_verification?.status || ""
       ).toUpperCase();
-      const highPriority =
-        ["FLAGGED", "FAILED"].includes(currentStatus) ||
-        bankStatus === "FAILED" ||
-        checks.some((item) => item.key === "duplicate_fdr_check" && item.status === "FAILED");
       const recordDate = new Date(fdr.created_at);
       const lowerDate = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
       const upperDate = toDate ? new Date(`${toDate}T23:59:59`) : null;
@@ -276,15 +335,29 @@ export default function OfficerWorkspace() {
         (!statusFilter || currentStatus === statusFilter) &&
         (!bankFilter || fdr.bank_name === bankFilter) &&
         (!applicationFilter || fdr.application?.application_type === applicationFilter) &&
-        (!priorityFilter || (priorityFilter === "HIGH" ? highPriority : !highPriority)) &&
+        (!priorityFilter || priority.level.toUpperCase() === priorityFilter) &&
+        (!minimumPriorityScore || priority.score >= Number(minimumPriorityScore)) &&
+        (!maximumPriorityScore || priority.score <= Number(maximumPriorityScore)) &&
         (!fromDate || (!Number.isNaN(recordDate.getTime()) && recordDate >= lowerDate)) &&
         (!toDate || (!Number.isNaN(recordDate.getTime()) && recordDate <= upperDate)) &&
         (!expiryFilter || maturityStatus(fdr.maturity_date).toUpperCase() === expiryFilter) &&
         issueMatches &&
         (currentSection !== "verification" || queueStatus);
-    }).sort((left, right) =>
-      new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-    );
+    });
+    return matches.sort((left, right) => {
+      if (currentSection === "verification") {
+        const priorityRank = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+        const priorityDifference =
+          priorityRank[getFdrPriority(right).level.toUpperCase()] -
+          priorityRank[getFdrPriority(left).level.toUpperCase()];
+        if (priorityDifference) return priorityDifference;
+        const scoreDifference =
+          getFdrPriority(right).score - getFdrPriority(left).score;
+        if (scoreDifference) return scoreDifference;
+      }
+      return new Date(right.created_at).getTime() -
+        new Date(left.created_at).getTime();
+    });
   }, [
     fdrs,
     query,
@@ -292,6 +365,8 @@ export default function OfficerWorkspace() {
     bankFilter,
     applicationFilter,
     priorityFilter,
+    minimumPriorityScore,
+    maximumPriorityScore,
     issueFilter,
     fromDate,
     toDate,
@@ -304,7 +379,54 @@ export default function OfficerWorkspace() {
   const pageFdrs = matchingFdrs.slice((page - 1) * pageSize, page * pageSize);
 
   function viewFdr(fdrId) {
+    if (currentSection === "verification") {
+      const fdr = fdrs.find((item) => item.id === fdrId);
+      if (fdr) {
+        setFdrDetailState({
+          detail: null,
+          loading: true,
+          error: "",
+          openingDocumentId: null
+        });
+        setSelectedFdr(fdr);
+      }
+      return;
+    }
     navigate(`/officer?fdr=${fdrId}`);
+  }
+
+  async function openFdrDocument(fdr, document) {
+    const documentWindow = window.open("about:blank", "_blank");
+    if (!documentWindow) {
+      setFdrDetailState((state) => ({
+        ...state,
+        error: "Allow pop-ups to open this FDR document."
+      }));
+      return;
+    }
+
+    setFdrDetailState((state) => ({
+      ...state,
+      error: "",
+      openingDocumentId: document.id
+    }));
+    try {
+      const blob = await getOfficerFdrDocument(token, fdr.id, document.id);
+      const documentUrl = URL.createObjectURL(blob);
+      documentWindow.location.href = documentUrl;
+      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60000);
+    } catch (documentError) {
+      documentWindow.close();
+      setFdrDetailState((state) => ({
+        ...state,
+        error: documentError.message || "Unable to open FDR document."
+      }));
+    } finally {
+      setFdrDetailState((state) => ({
+        ...state,
+        openingDocumentId: null
+      }));
+    }
   }
 
   async function reviewRelease(requestId, decision) {
@@ -413,6 +535,7 @@ export default function OfficerWorkspace() {
       id: fdr.id,
       cells: [
         <strong className="ow-link" key="number">{fdr.fdr_number}</strong>,
+        <FdrPriorityBadge key="priority" priority={getFdrPriority(fdr)} compact />,
         fdr.institution?.name || "—",
         fdr.bank_name || "—",
         formatAmount(fdr.amount),
@@ -442,8 +565,10 @@ export default function OfficerWorkspace() {
             {["NEW_INSTITUTION", "NEW_PROGRAMME", "INCREASE_INTAKE", "RENEWAL", "REPLACEMENT", "MODIFICATION", "OTHER"].map((value) => <option key={value} value={value}>{label(value)}</option>)}
           </select>
           <select aria-label="Filter by priority" value={priorityFilter} onChange={(event) => { setPriorityFilter(event.target.value); setPage(1); }}>
-            <option value="">All priorities</option><option value="HIGH">High</option><option value="MEDIUM">Medium / Low</option>
+            <option value="">All priorities</option>{["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((level) => <option key={level} value={level}>{label(level)}</option>)}
           </select>
+          <input aria-label="Minimum priority score" type="number" min="0" max="100" placeholder="Min score" value={minimumPriorityScore} onChange={(event) => { setMinimumPriorityScore(event.target.value); setPage(1); }} />
+          <input aria-label="Maximum priority score" type="number" min="0" max="100" placeholder="Max score" value={maximumPriorityScore} onChange={(event) => { setMaximumPriorityScore(event.target.value); setPage(1); }} />
           {currentSection === "verification" && <select aria-label="Filter by issue" value={issueFilter} onChange={(event) => { setIssueFilter(event.target.value); setPage(1); }}>
             <option value="">All review reasons</option><option value="DUPLICATE">Duplicate FDR</option><option value="AMOUNT_MISMATCH">Amount mismatch</option><option value="OCR_MISMATCH">OCR mismatch</option><option value="BANK_FAILED">Bank verification failure</option><option value="PENDING">Pending verification</option>
           </select>}
@@ -454,7 +579,7 @@ export default function OfficerWorkspace() {
           </select>
         </div>
         <Table
-          columns={["FDR Number", "Institution", "Bank", "Amount", "Application", "Maturity Date", "Expiry", "Status", "Verification", "Score", "Action"]}
+          columns={["FDR Number", "Priority", "Institution", "Bank", "Amount", "Application", "Maturity Date", "Expiry", "Status", "Verification", "Score", "Action"]}
           rows={rows}
           empty={currentSection === "verification" ? "No pending or flagged FDRs need attention." : "No FDR records are available."}
         />
@@ -486,7 +611,7 @@ export default function OfficerWorkspace() {
             </section>
             <section className="ow-card">
               <h2>FDRs</h2>
-              <Table columns={["FDR Number", "Bank", "Amount", "Status", "Verification", "Action"]} rows={(institutionDetail.fdrs || []).map((fdr) => ({ id: fdr.id, cells: [fdr.fdr_number, fdr.bank_name, formatAmount(fdr.amount), label(fdr.status), label(fdr.verification_status), <button className="ow-button" key="view" onClick={() => viewFdr(fdr.id)}>View</button>] }))} />
+              <Table columns={["FDR Number", "Priority", "Bank", "Amount", "Status", "Verification", "Action"]} rows={(institutionDetail.fdrs || []).map((fdr) => ({ id: fdr.id, cells: [fdr.fdr_number, <FdrPriorityBadge key="priority" priority={getFdrPriority(fdr)} compact />, fdr.bank_name, formatAmount(fdr.amount), label(fdr.status), label(fdr.verification_status), <button className="ow-button" key="view" onClick={() => viewFdr(fdr.id)}>View</button>] }))} />
             </section>
             <section className="ow-card">
               <h2>Applications</h2>
@@ -503,7 +628,29 @@ export default function OfficerWorkspace() {
       return (
         <>
           <div className="ow-filters"><input aria-label="Search institutions" placeholder="Search institution, AICTE code, city, state" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-          <Table columns={["Institution Name", "AICTE Code", "City", "State", "Email", "Total FDRs", "Verified", "Pending", "Compliance Score", "Action"]} rows={institutions.filter((item) => `${item.name} ${item.aicte_code} ${item.city} ${item.state} ${item.email}`.toLowerCase().includes(query.toLowerCase())).map((item) => ({ id: item.id, cells: [item.name, item.aicte_code, item.city || "—", item.state || "—", item.email || "—", item.total_fdrs || 0, item.verified_fdrs || 0, item.pending_fdrs || 0, `${item.compliance_score ?? 0}/100`, <button className="ow-button" key="view" onClick={() => navigate(`/officer/institutions?institution=${item.id}`)}>View details</button>] }))} empty="No institutions found." />
+          <Table
+            columns={["Institution Name", "AICTE Code", "City", "State", "Email", "FDRs", "Total Deposit Value", "Verified", "Pending", "Compliance", "Status", "Action"]}
+            rows={institutions
+              .filter((item) => `${item.name} ${item.aicte_code} ${item.city} ${item.state} ${item.email}`.toLowerCase().includes(query.toLowerCase()))
+              .map((item) => ({
+                id: item.id,
+                cells: [
+                  item.name,
+                  item.aicte_code,
+                  item.city || "—",
+                  item.state || "—",
+                  item.email || "—",
+                  item.total_fdrs || 0,
+                  formatAmount(item.total_deposit_value),
+                  item.verified_fdrs || 0,
+                  item.pending_fdrs || 0,
+                  `${item.compliance_score ?? 0}/100`,
+                  item.total_fdrs ? "FDRs on record" : "No FDRs submitted",
+                  <button className="ow-button" key="view" onClick={() => navigate(`/officer/institutions?institution=${item.id}`)}>View details</button>
+                ]
+              }))}
+            empty="No institutions found."
+          />
         </>
       );
     }
@@ -511,7 +658,7 @@ export default function OfficerWorkspace() {
       return (
         <>
           {actionError && <p className="ow-error" role="alert">{actionError}</p>}
-          <Table columns={["Request ID", "Institution", "FDR Number", "Reason", "Status", "Created", "Reviewed", "Action"]} rows={releaseRequests.map((item) => ({ id: item.id, cells: [item.id, item.institution_name, item.fdr_number, item.reason, label(item.status), formatDate(item.created_at), item.reviewer_name ? `${item.reviewer_name} · ${formatDate(item.reviewed_at)}` : "—", item.status === "PENDING" ? <button className="ow-button" key="review" onClick={() => { setReviewId(item.id); setActionError(""); }}>Review</button> : "—"] }))} empty="No release requests have been submitted." />
+          <Table columns={["Request ID", "Institution", "FDR Number", "Priority", "Reason", "Status", "Created", "Reviewed", "Action"]} rows={releaseRequests.map((item) => ({ id: item.id, cells: [item.id, item.institution_name, item.fdr_number, <FdrPriorityBadge key="priority" priority={item.priority} compact />, item.reason, label(item.status), formatDate(item.created_at), item.reviewer_name ? `${item.reviewer_name} · ${formatDate(item.reviewed_at)}` : "—", item.status === "PENDING" ? <button className="ow-button" key="review" onClick={() => { setReviewId(item.id); setActionError(""); }}>Review</button> : "—"] }))} empty="No release requests have been submitted." />
           {reviewId && <div className="ow-card ow-review"><h2>Review request #{reviewId}</h2><label>Decision reason<textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} /></label><div className="ow-actions"><button className="ow-button" disabled={busy} onClick={() => reviewRelease(reviewId, "APPROVE")}>Approve</button><button className="ow-button ow-danger" disabled={busy} onClick={() => reviewRelease(reviewId, "REJECT")}>Reject</button><button className="ow-button ow-muted" onClick={() => setReviewId(null)}>Cancel</button></div></div>}
         </>
       );
@@ -531,41 +678,72 @@ export default function OfficerWorkspace() {
       );
     }
     if (currentSection === "reports") {
-      const reportStats = data?.stats || {};
-      const maxBankCount = Math.max(1, ...(data?.byBank || []).map((bank) => bank.count));
       return (
-        <div className="ow-stack">
-          <section className="ow-grid ow-metrics">
-            {[["Total FDRs", reportStats.total_fdrs], ["Verified", reportStats.verified], ["Pending", reportStats.pending], ["Flagged", reportStats.flagged], ["Failed", reportStats.failed], ["Institutions", reportStats.institutions], ["Deposits", formatAmount(reportStats.total_deposit_amount)]].map(([heading, value]) => <div className="ow-card" key={heading}><small>{heading}</small><strong>{value ?? 0}</strong></div>)}
-          </section>
-          <section className="ow-card"><h2>Bank-wise distribution</h2>{(data?.byBank || []).map((bank) => <div className="ow-bar-row" key={bank.label}><span>{bank.label}</span><div><i style={{ width: `${Math.max(3, bank.count / maxBankCount * 100)}%` }} /></div><strong>{bank.count} · {formatAmount(bank.amount)}</strong></div>)}</section>
-          <section className="ow-card"><h2>Application type distribution</h2><Table columns={["Application Type", "FDR Count"]} rows={(data?.byApplicationType || []).map((item) => ({ id: item.label, cells: [label(item.label), item.count] }))} /></section>
-          <section className="ow-card"><h2>Expiry distribution</h2><Table columns={["Matured", "Critical (<30 days)", "Expiring (30–90 days)", "Normal (>90 days)"]} rows={[{ id: "expiry", cells: [data?.expiry?.matured || 0, data?.expiry?.critical || 0, data?.expiry?.expiring_soon || 0, data?.expiry?.normal || 0] }]} /></section>
-        </div>
+        <OfficerReports fdrs={data?.fdrs || []} />
       );
     }
     if (currentSection === "audit-log") {
       return <Table columns={["User", "Action", "Entity", "Entity ID", "Old Value", "New Value", "Date/Time"]} rows={(data?.logs || []).map((item) => ({ id: item.id, cells: [item.user_name || item.user_email || "Unknown", label(item.action), label(item.entity_type), item.entity_id ?? "—", <pre key="old">{item.old_value || "—"}</pre>, <pre key="new">{item.new_value || "—"}</pre>, formatDate(item.created_at)] }))} empty="No audit events have been recorded." />;
     }
     if (currentSection === "users") {
-      return <Table columns={["Name", "Email", "Role", "Created At"]} rows={(data?.users || []).map((item) => ({ id: item.id, cells: [item.name, item.email, label(item.role), formatDate(item.created_at)] }))} empty="No users found." />;
+      return (
+        <div className="ow-stack">
+          <p className="ow-subtle">
+            Synthetic demonstration accounts are clearly marked and use
+            non-deliverable .invalid email addresses.
+          </p>
+          <Table
+            columns={["Institution", "User", "Role", "Email", "Status", "Created At"]}
+            rows={(data?.users || []).map((item) => ({
+              id: item.id,
+              cells: [
+                item.institution_name || demoUserDetails.get(item.email)?.institutionName || "—",
+                item.name,
+                demoUserDetails.get(item.email)?.displayRole || label(item.role),
+                item.email,
+                item.email.endsWith(".invalid") ? "DEMO — Not for sign-in" : "Active",
+                formatDate(item.created_at)
+              ]
+            }))}
+            empty="No users found."
+          />
+        </div>
+      );
     }
     if (currentSection === "renewals") {
       const renewalRequests = data?.renewals || [];
       return (
         <>
           {actionError && <p className="ow-error" role="alert">{actionError}</p>}
+          <p className="ow-subtle">
+            DEMO renewal requests are linked to the synthetic FDR records shown
+            in this portal. Dates and values are illustrative.
+          </p>
           <Table
-            columns={["Old FDR", "New FDR", "Institution", "Requested Maturity", "Request Date", "Status", "Action"]}
+            columns={["Institution", "Previous FDR", "Bank", "Amount", "Previous Maturity", "Days Remaining", "Renewal FDR", "Requested Maturity", "Request Date", "Status", "Action"]}
             rows={renewalRequests.map((item) => ({
               id: item.id,
-              cells: [
-                item.old_fdr_number,
-                item.new_fdr_number || "Not submitted",
+              cells: (() => {
+                const daysRemaining = getDaysRemaining(item.current_maturity_date);
+                return [
                 item.institution_name,
+                item.old_fdr_number,
+                item.bank_name || "—",
+                formatAmount(item.amount),
+                formatDate(item.current_maturity_date),
+                daysRemaining === null
+                  ? "—"
+                  : daysRemaining < 0
+                    ? `${Math.abs(daysRemaining)} days overdue`
+                    : `${daysRemaining} days`,
+                item.new_fdr_number || "Not submitted",
                 formatDate(item.requested_maturity_date),
                 formatDate(item.renewal_date),
-                label(item.status),
+                item.new_fdr_id
+                  ? "Renewed"
+                  : item.status === "PENDING"
+                    ? "Renewal Requested"
+                    : label(item.status),
                 item.new_fdr_id
                   ? <button className="ow-button" key="view" onClick={() => viewFdr(item.new_fdr_id)}>View new FDR</button>
                   : ["APPROVED", "REJECTED"].includes(item.status)
@@ -575,7 +753,8 @@ export default function OfficerWorkspace() {
                         setReviewReason("");
                         setActionError("");
                       }}>Review</button>
-              ]
+                ];
+              })()
             }))}
             empty="No renewal requests have been submitted."
           />
@@ -628,16 +807,8 @@ export default function OfficerWorkspace() {
   }
 
   return (
-    <div className="ow-layout">
+    <OfficerLayout>
       <style>{`
-        .ow-layout{min-height:100vh;display:flex;background:#f3f6fa;color:#10233f;font-family:Arial,Helvetica,sans-serif}
-        .ow-sidebar{position:fixed;inset:0 auto 0 0;width:220px;min-width:220px;box-sizing:border-box;background:#06264d;color:#fff;overflow:auto}
-        .ow-brand{height:82px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;color:#09284e;font-weight:700}
-        .ow-logo{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#f4c542;border:3px solid #e4b12c;font-size:12px}
-        .ow-brand small{display:block;color:#53657d;font-weight:400;margin-top:4px}
-        .ow-nav{padding:14px 0}.ow-nav a{display:flex;gap:12px;align-items:center;padding:12px 18px;color:#dbe8f7;text-decoration:none;border-left:3px solid transparent;font-size:13px}
-        .ow-nav a:hover,.ow-nav a.active{background:#0d4b91;color:#fff;border-left-color:#4ba3ff}
-        .ow-main{margin-left:220px;width:calc(100% - 220px);min-width:0}
         .ow-header{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#fff;border-bottom:1px solid #e1e7ef}
         .ow-header h1{font-size:19px;margin:0}.ow-header a{color:#0767b8;text-decoration:none}
         .ow-header-actions{display:flex;align-items:center;gap:16px}
@@ -663,14 +834,9 @@ export default function OfficerWorkspace() {
         .ow-metrics{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.ow-metrics .ow-card strong{font-size:20px}
         .ow-bar-row{display:grid;grid-template-columns:minmax(110px,180px) 1fr minmax(120px,auto);gap:12px;align-items:center;margin:12px 0;font-size:11px}
         .ow-bar-row>div{height:12px;border-radius:10px;background:#edf2f7;overflow:hidden}.ow-bar-row i{display:block;height:100%;background:#4c9be8;border-radius:10px}
-        @media(max-width:950px){.ow-sidebar{width:75px;min-width:75px}.ow-brand{justify-content:center;padding:8px}.ow-brand>span:last-child,.ow-nav a span:last-child{display:none}.ow-nav a{justify-content:center;padding:14px}.ow-main{margin-left:75px;width:calc(100% - 75px)}.ow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:950px){.ow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:600px){.ow-header{padding:0 12px}.ow-content{padding:12px}.ow-grid{grid-template-columns:1fr}.ow-bar-row{grid-template-columns:1fr auto}.ow-bar-row>div{grid-column:1/-1;grid-row:2}.ow-bar-row strong{grid-column:2;grid-row:1}.ow-pagination{flex-wrap:wrap}}
       `}</style>
-      <aside className="ow-sidebar">
-        <div className="ow-brand"><span className="ow-logo">AICTE</span><span>AICTE FDR Portal<small>Officer Workspace</small></span></div>
-        <nav className="ow-nav">{navItems.map(([name, href, icon]) => <Link key={href} className={(href === `/officer/${currentSection}` || (href === "/officer" && !currentSection)) ? "active" : ""} to={href}><span>{icon}</span><span>{name}</span></Link>)}</nav>
-      </aside>
-      <main className="ow-main">
         <header className="ow-header"><h1>{titles[currentSection] || "Officer Workspace"}</h1><div className="ow-header-actions"><Link to="/officer">← Dashboard</Link><button className="ow-logout" type="button" onClick={handleLogout}>Logout</button></div></header>
         <section className="ow-content">
           <div className="ow-actions" style={{ justifyContent: "space-between", marginTop: 0 }}>
@@ -681,7 +847,17 @@ export default function OfficerWorkspace() {
             : error ? <div className="ow-error" role="alert">{error} <button className="ow-button" onClick={() => setRefreshKey((value) => value + 1)}>Try again</button></div>
               : renderContent()}
         </section>
-      </main>
-    </div>
+        {currentSection === "verification" && selectedFdr && (
+          <OfficerFdrDetailsModal
+            fdr={selectedFdr}
+            detail={fdrDetailState.detail}
+            loading={fdrDetailState.loading}
+            error={fdrDetailState.error}
+            openingDocumentId={fdrDetailState.openingDocumentId}
+            onClose={() => setSelectedFdr(null)}
+            onOpenDocument={openFdrDocument}
+          />
+        )}
+    </OfficerLayout>
   );
 }

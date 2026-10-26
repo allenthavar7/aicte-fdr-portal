@@ -1,0 +1,62 @@
+%PDF-1.4
+%Synthetic OCR test fixture
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 501 >>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+16 TL
+(SYNTHETIC FIXED DEPOSIT RECEIPT) Tj
+T*
+(FOR OCR TESTING ONLY - NOT ISSUED BY A BANK) Tj
+T*
+() Tj
+T*
+(FDR DETAILS) Tj
+T*
+(FDR Number: DEMO-FDR-2026-84216) Tj
+T*
+(Bank Name: AICTE Demo Bank \(Test Only\)) Tj
+T*
+(Principal Amount: Rs. 8,75,000) Tj
+T*
+(Issue Date: 27/10/2026) Tj
+T*
+(Maturity Date: 27/10/2027) Tj
+T*
+(Status: ACTIVE) Tj
+T*
+() Tj
+T*
+(This synthetic document is for local software testing only.) Tj
+T*
+(It is not a bank-issued receipt or proof of funds.) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000037 00000 n 
+0000000086 00000 n 
+0000000143 00000 n 
+0000000269 00000 n 
+0000000339 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+891
+%%EOF

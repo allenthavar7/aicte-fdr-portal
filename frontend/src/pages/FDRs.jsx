@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   getInstitutionFdrDocument,
   getInstitutionFdrs
 } from "../api/api";
+import AutomatedVerificationResult from "../components/AutomatedVerificationResult";
 
 function FDRs() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ function FDRs() {
   );
   const [openingDocumentId, setOpeningDocumentId] = useState(null);
   const [documentError, setDocumentError] = useState("");
+  const [expandedVerificationId, setExpandedVerificationId] = useState(null);
 
   const loadFdrs = useCallback(async () => {
     try {
@@ -468,7 +470,7 @@ function FDRs() {
                   <tbody>
 
                     {visibleFdrs.map((fdr) => (
-
+                      <Fragment key={fdr.id}>
                       <tr key={fdr.id}>
 
                         <td>
@@ -527,6 +529,18 @@ function FDRs() {
                               {fdr.review_reason}
                             </small>
                           )}
+                          <button
+                            className="text-button"
+                            type="button"
+                            onClick={() => setExpandedVerificationId(
+                              expandedVerificationId === fdr.id ? null : fdr.id
+                            )}
+                            aria-expanded={expandedVerificationId === fdr.id}
+                          >
+                            {expandedVerificationId === fdr.id
+                              ? "Hide details"
+                              : "View details"}
+                          </button>
                         </td>
 
                         <td>
@@ -567,6 +581,23 @@ function FDRs() {
 
                       </tr>
 
+                    {expandedVerificationId === fdr.id && (
+                      <tr>
+                        <td colSpan="11">
+                          {fdr.verification ? (
+                            <AutomatedVerificationResult
+                              verification={fdr.verification}
+                            />
+                          ) : (
+                            <p role="status">
+                              No automated verification details are available for this FDR.
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+
+                      </Fragment>
                     ))}
                     {visibleFdrs.length === 0 && (
                       <tr>

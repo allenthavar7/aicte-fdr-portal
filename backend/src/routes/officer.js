@@ -7,12 +7,16 @@ require("../database/migrations")(db);
 const {
   calculateInstitutionCompliance
 } = require("../services/complianceService");
-const { extractFdrData } = require("../services/ocrService");
+const {
+  extractFdrData,
+  serializeOcrExtraction
+} = require("../services/ocrService");
 const { verifyFdr } = require("../services/verificationService");
 const {
   createConfiguredMockBankProvider,
   verifyBankFdr
 } = require("../services/bankVerificationService");
+const { addFdrPriority } = require("../services/fdrPriorityService");
 
 const {
   authenticateToken,
@@ -99,7 +103,7 @@ function getOfficerVerificationQueueRecords() {
     ORDER BY f.created_at DESC, f.id DESC
   `).all();
 
-  return rows.flatMap((row) => {
+  const queue = rows.flatMap((row) => {
     const bankVerification = row.bank_verification_result
       ? JSON.parse(row.bank_verification_result)
       : null;
@@ -208,6 +212,7 @@ function getOfficerVerificationQueueRecords() {
       }
     }];
   });
+  return addFdrPriority(db, queue);
 }
 
 function getEffectiveVerificationStatus(storedStatus, checks, bankVerification) {
@@ -407,7 +412,10 @@ router.get(
         }
       }
 
-      const fdrs = Array.from(fdrsById.values());
+      const fdrs = addFdrPriority(
+        db,
+        Array.from(fdrsById.values())
+      );
 
       res.json({
         count: fdrs.length,
@@ -1004,6 +1012,11 @@ router.get(
           ORDER BY verified_at DESC
         `)
         .all(fdrId);
+      fdr.priority = addFdrPriority(db, [{
+        ...fdr,
+        verification,
+        documents
+      }])[0].priority;
 
       insertAudit(req.user.userId, "FDR_VIEWED", "FDR", fdrId, null, {
         fdrNumber: fdr.fdr_number
@@ -1607,6 +1620,7 @@ router.get(
         SELECT i.id, i.name, i.aicte_code, i.address, i.city, i.state, i.email,
           i.created_at,
           COUNT(f.id) AS total_fdrs,
+          COALESCE(SUM(f.amount), 0) AS total_deposit_value,
           SUM(CASE WHEN f.verification_status = 'VERIFIED' THEN 1 ELSE 0 END) AS verified_fdrs,
           SUM(CASE WHEN f.verification_status IN ('PENDING', 'FLAGGED', 'FAILED') THEN 1 ELSE 0 END) AS pending_fdrs,
           (SELECT COUNT(*) FROM applications a WHERE a.institution_id = i.id) AS total_applications
@@ -1653,7 +1667,7 @@ router.get(
         return res.status(404).json({ message: "Institution not found" });
       }
 
-      const fdrs = db.prepare(`
+      const fdrs = addFdrPriority(db, db.prepare(`
         SELECT f.id, f.fdr_number, f.bank_name, f.amount, f.issue_date,
           f.maturity_date, f.status, f.verification_status, f.created_at,
           a.id AS application_id, a.application_type, a.programme_name,
@@ -1673,7 +1687,7 @@ router.get(
         bank_verification: fdr.bank_verification_result
           ? JSON.parse(fdr.bank_verification_result)
           : null
-      }));
+      })));
 
       const applications = db.prepare(`
         SELECT id, application_type, programme_name, programme_level,
@@ -1725,7 +1739,7 @@ router.get(
   requireRole("OFFICER"),
   (req, res) => {
     try {
-      const requests = db.prepare(`
+      const requests = addFdrPriority(db, db.prepare(`
         SELECT r.id, r.fdr_id, r.reason, r.status, r.reviewed_by,
           r.reviewed_at, r.created_at,
           f.fdr_number, f.amount, f.bank_name,
@@ -1736,7 +1750,7 @@ router.get(
         JOIN institutions i ON i.id = f.institution_id
         LEFT JOIN users u ON u.id = r.reviewed_by
         ORDER BY r.created_at DESC, r.id DESC
-      `).all();
+      `).all(), (request) => request.fdr_id);
       return res.json({ count: requests.length, requests });
     } catch (error) {
       console.error("Officer release request list error:", error);
@@ -1920,9 +1934,11 @@ router.get(
   (req, res) => {
     try {
       const users = db.prepare(`
-        SELECT id, name, email, role, created_at
-        FROM users
-        ORDER BY created_at DESC, id DESC
+        SELECT u.id, u.name, u.email, u.role, u.created_at,
+          i.name AS institution_name
+        FROM users u
+        LEFT JOIN institutions i ON i.user_id = u.id
+        ORDER BY u.created_at DESC, u.id DESC
       `).all();
       return res.json({ count: users.length, users });
     } catch (error) {
@@ -1938,7 +1954,7 @@ router.get(
   requireRole("OFFICER"),
   (req, res) => {
     try {
-      const renewals = db.prepare(`
+      const renewals = addFdrPriority(db, db.prepare(`
         SELECT r.id, r.renewal_date, r.status, r.requested_maturity_date,
           r.reason, r.reviewed_at, r.review_reason,
           old_fdr.id AS old_fdr_id,
@@ -1955,7 +1971,7 @@ router.get(
         LEFT JOIN fdrs new_fdr ON new_fdr.id = r.new_fdr_id
         JOIN institutions i ON i.id = old_fdr.institution_id
         ORDER BY r.renewal_date DESC, r.id DESC
-      `).all();
+      `).all(), (renewal) => renewal.old_fdr_id);
       return res.json({ count: renewals.length, renewals });
     } catch (error) {
       console.error("Officer renewals error:", error);
@@ -2320,7 +2336,7 @@ router.post(
           reason,
           result.score,
           result.confidence,
-          extraction.extracted ? JSON.stringify(extraction.extracted) : null,
+          serializeOcrExtraction(extraction),
           JSON.stringify(result.fields),
           reason,
           JSON.stringify(bankVerification),

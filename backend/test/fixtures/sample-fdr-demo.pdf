@@ -1,0 +1,53 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 1027 >>
+stream
+0.05 0.20 0.36 rg 0 710 612 82 re f
+BT /F2 18 Tf 1 1 1 rg 46 755 Td (SYNTHETIC DEMO TEST FIXTURE) Tj ET
+BT /F2 11 Tf 1 1 1 rg 46 730 Td (NOT ISSUED BY A BANK - NOT A REAL FINANCIAL INSTRUMENT) Tj ET
+0.08 0.16 0.25 rg
+BT /F2 20 Tf 46 674 Td (Fixed Deposit Receipt) Tj ET
+0.30 0.34 0.39 rg
+BT /F2 14 Tf 52 625 Td (FDR Number: DEMO-FDR-2026-73942) Tj ET
+BT /F2 14 Tf 52 587 Td (Bank Name: AICTE Demo Bank \(Test Only\)) Tj ET
+BT /F2 14 Tf 52 549 Td (Principal Amount: INR 1000000) Tj ET
+BT /F2 14 Tf 52 511 Td (Date of Issue: 26/10/2026) Tj ET
+BT /F2 14 Tf 52 473 Td (Maturity Date: 26/10/2027) Tj ET
+BT /F2 14 Tf 52 435 Td (FDR Status: ACTIVE) Tj ET
+0.72 0.08 0.08 rg 42 164 528 2 re f
+0.55 0.08 0.08 rg
+BT /F2 12 Tf 46 142 Td (This synthetic document exists only to test the AICTE FDR portal OCR workflow.) Tj ET
+BT /F1 10 Tf 46 119 Td (It has no monetary value and must not be submitted to any real institution or bank.) Tj ET
+0.30 0.34 0.39 rg BT /F1 9 Tf 46 42 Td (For software testing only. All values are fictional.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000327 00000 n 
+0000000402 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+1480
+%%EOF

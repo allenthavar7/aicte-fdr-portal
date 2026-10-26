@@ -1,0 +1,286 @@
+{
+  "institutions": [
+    {
+      "code": "DEMO-MH-101",
+      "name": "DEMO — Western Institute of Technology, Pune",
+      "address": "Demo Campus, Shivajinagar",
+      "city": "Pune",
+      "state": "Maharashtra",
+      "email": "admin.wit@demo.example.invalid"
+    },
+    {
+      "code": "DEMO-MH-102",
+      "name": "DEMO — Konkan School of Engineering, Mumbai",
+      "address": "Demo Campus, Bandra East",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "email": "admin.kse@demo.example.invalid"
+    },
+    {
+      "code": "DEMO-MH-103",
+      "name": "DEMO — Sahyadri College of Applied Engineering, Nashik",
+      "address": "Demo Campus, Gangapur Road",
+      "city": "Nashik",
+      "state": "Maharashtra",
+      "email": "admin.scae@demo.example.invalid"
+    },
+    {
+      "code": "DEMO-GJ-104",
+      "name": "DEMO — Narmada Institute of Technical Studies, Surat",
+      "address": "Demo Campus, Adajan",
+      "city": "Surat",
+      "state": "Gujarat",
+      "email": "admin.nits@demo.example.invalid"
+    },
+    {
+      "code": "DEMO-KA-105",
+      "name": "DEMO — Deccan School of Engineering, Bengaluru",
+      "address": "Demo Campus, Jayanagar",
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "email": "admin.dse@demo.example.invalid"
+    }
+  ],
+  "users": [
+    {
+      "email": "admin.wit@demo.example.invalid",
+      "name": "DEMO — Western Institute Admin",
+      "institutionCode": "DEMO-MH-101",
+      "displayRole": "Institution Admin"
+    },
+    {
+      "email": "finance.wit@demo.example.invalid",
+      "name": "DEMO — Western Institute Finance Officer",
+      "institutionCode": "DEMO-MH-101",
+      "displayRole": "Finance Officer"
+    },
+    {
+      "email": "admin.kse@demo.example.invalid",
+      "name": "DEMO — Konkan School Admin",
+      "institutionCode": "DEMO-MH-102",
+      "displayRole": "Institution Admin"
+    },
+    {
+      "email": "finance.kse@demo.example.invalid",
+      "name": "DEMO — Konkan School Finance Officer",
+      "institutionCode": "DEMO-MH-102",
+      "displayRole": "Finance Officer"
+    },
+    {
+      "email": "admin.scae@demo.example.invalid",
+      "name": "DEMO — Sahyadri College Admin",
+      "institutionCode": "DEMO-MH-103",
+      "displayRole": "Institution Admin"
+    },
+    {
+      "email": "finance.scae@demo.example.invalid",
+      "name": "DEMO — Sahyadri College Finance Officer",
+      "institutionCode": "DEMO-MH-103",
+      "displayRole": "Finance Officer"
+    },
+    {
+      "email": "admin.nits@demo.example.invalid",
+      "name": "DEMO — Narmada Institute Admin",
+      "institutionCode": "DEMO-GJ-104",
+      "displayRole": "Institution Admin"
+    },
+    {
+      "email": "finance.nits@demo.example.invalid",
+      "name": "DEMO — Narmada Institute Finance Officer",
+      "institutionCode": "DEMO-GJ-104",
+      "displayRole": "Finance Officer"
+    },
+    {
+      "email": "admin.dse@demo.example.invalid",
+      "name": "DEMO — Deccan School Admin",
+      "institutionCode": "DEMO-KA-105",
+      "displayRole": "Institution Admin"
+    },
+    {
+      "email": "finance.dse@demo.example.invalid",
+      "name": "DEMO — Deccan School Finance Officer",
+      "institutionCode": "DEMO-KA-105",
+      "displayRole": "Finance Officer"
+    }
+  ],
+  "fdrs": [
+    {
+      "number": "DEMO-FDR-2026-NOV-01",
+      "institutionCode": "DEMO-MH-101",
+      "bank": "State Bank of India",
+      "amount": 1250000,
+      "issueDate": "2025-11-15",
+      "maturityDate": "2026-11-15",
+      "status": "ACTIVE",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "NEW_PROGRAMME"
+    },
+    {
+      "number": "DEMO-FDR-2026-NOV-02",
+      "institutionCode": "DEMO-MH-102",
+      "bank": "HDFC Bank",
+      "amount": 850000,
+      "issueDate": "2025-11-27",
+      "maturityDate": "2026-11-27",
+      "status": "ACTIVE",
+      "verificationStatus": "FLAGGED",
+      "applicationType": "INCREASE_INTAKE"
+    },
+    {
+      "number": "DEMO-FDR-2026-DEC-01",
+      "institutionCode": "DEMO-MH-103",
+      "bank": "ICICI Bank",
+      "amount": 1100000,
+      "issueDate": "2025-12-12",
+      "maturityDate": "2026-12-12",
+      "status": "ACTIVE",
+      "verificationStatus": "PENDING",
+      "applicationType": "NEW_PROGRAMME"
+    },
+    {
+      "number": "DEMO-FDR-2026-DEC-02",
+      "institutionCode": "DEMO-GJ-104",
+      "bank": "Axis Bank",
+      "amount": 900000,
+      "issueDate": "2025-12-26",
+      "maturityDate": "2026-12-26",
+      "status": "SUBMITTED",
+      "verificationStatus": "PENDING",
+      "applicationType": "NEW_INSTITUTION"
+    },
+    {
+      "number": "DEMO-FDR-2027-JAN-01",
+      "institutionCode": "DEMO-KA-105",
+      "bank": "Punjab National Bank",
+      "amount": 1400000,
+      "issueDate": "2026-01-12",
+      "maturityDate": "2027-01-12",
+      "status": "ACTIVE",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "RENEWAL"
+    },
+    {
+      "number": "DEMO-FDR-2027-JAN-02",
+      "institutionCode": "DEMO-MH-101",
+      "bank": "Bank of Baroda",
+      "amount": 750000,
+      "issueDate": "2026-01-28",
+      "maturityDate": "2027-01-28",
+      "status": "RELEASE_REQUESTED",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "REPLACEMENT"
+    },
+    {
+      "number": "DEMO-FDR-2027-FEB-01",
+      "institutionCode": "DEMO-MH-102",
+      "bank": "State Bank of India",
+      "amount": 1600000,
+      "issueDate": "2026-02-09",
+      "maturityDate": "2027-02-09",
+      "status": "ACTIVE",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "NEW_PROGRAMME"
+    },
+    {
+      "number": "DEMO-FDR-2027-FEB-02",
+      "institutionCode": "DEMO-MH-103",
+      "bank": "HDFC Bank",
+      "amount": 950000,
+      "issueDate": "2026-02-25",
+      "maturityDate": "2027-02-25",
+      "status": "ACTIVE",
+      "verificationStatus": "FLAGGED",
+      "applicationType": "MODIFICATION"
+    },
+    {
+      "number": "DEMO-FDR-2027-MAR-01",
+      "institutionCode": "DEMO-GJ-104",
+      "bank": "ICICI Bank",
+      "amount": 1200000,
+      "issueDate": "2026-03-10",
+      "maturityDate": "2027-03-10",
+      "status": "ACTIVE",
+      "verificationStatus": "PENDING",
+      "applicationType": "INCREASE_INTAKE"
+    },
+    {
+      "number": "DEMO-FDR-2027-MAR-02",
+      "institutionCode": "DEMO-KA-105",
+      "bank": "Axis Bank",
+      "amount": 1050000,
+      "issueDate": "2026-03-29",
+      "maturityDate": "2027-03-29",
+      "status": "ACTIVE",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "NEW_PROGRAMME"
+    },
+    {
+      "number": "DEMO-FDR-2027-APR-01",
+      "institutionCode": "DEMO-MH-101",
+      "bank": "Punjab National Bank",
+      "amount": 1350000,
+      "issueDate": "2026-04-12",
+      "maturityDate": "2027-04-12",
+      "status": "ACTIVE",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "RENEWAL"
+    },
+    {
+      "number": "DEMO-FDR-2027-APR-02",
+      "institutionCode": "DEMO-MH-102",
+      "bank": "Bank of Baroda",
+      "amount": 800000,
+      "issueDate": "2026-04-26",
+      "maturityDate": "2027-04-26",
+      "status": "ACTIVE",
+      "verificationStatus": "PENDING",
+      "applicationType": "OTHER"
+    },
+    {
+      "number": "DEMO-FDR-2026-MATURED-01",
+      "institutionCode": "DEMO-MH-103",
+      "bank": "State Bank of India",
+      "amount": 1000000,
+      "issueDate": "2025-09-15",
+      "maturityDate": "2026-09-15",
+      "status": "MATURED",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "RENEWAL"
+    },
+    {
+      "number": "DEMO-FDR-2026-MATURED-02",
+      "institutionCode": "DEMO-GJ-104",
+      "bank": "HDFC Bank",
+      "amount": 700000,
+      "issueDate": "2025-08-30",
+      "maturityDate": "2026-08-30",
+      "status": "MATURED",
+      "verificationStatus": "VERIFIED",
+      "applicationType": "RENEWAL"
+    }
+  ],
+  "renewals": [
+    {
+      "oldFdrNumber": "DEMO-FDR-2026-MATURED-01",
+      "newFdrNumber": "DEMO-FDR-2026-NOV-01",
+      "renewalDate": "2026-10-10",
+      "status": "APPROVED",
+      "requestedMaturityDate": "2027-11-15",
+      "reason": "DEMO — FDR renewed with a linked replacement deposit."
+    },
+    {
+      "oldFdrNumber": "DEMO-FDR-2026-MATURED-02",
+      "renewalDate": "2026-10-25",
+      "status": "PENDING",
+      "requestedMaturityDate": "2027-10-31",
+      "reason": "DEMO — Renewal request awaiting officer review."
+    },
+    {
+      "oldFdrNumber": "DEMO-FDR-2026-NOV-02",
+      "renewalDate": "2026-10-24",
+      "status": "UNDER_REVIEW",
+      "requestedMaturityDate": "2027-11-27",
+      "reason": "DEMO — Institution submitted a renewal request."
+    }
+  ]
+}

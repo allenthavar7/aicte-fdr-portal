@@ -5,7 +5,10 @@ const fs = require("fs");
 
 const db = require("../database/database");
 const ensureVerificationColumns = require("../database/migrations");
-const { extractFdrData } = require("../services/ocrService");
+const {
+  extractFdrData,
+  serializeOcrExtraction
+} = require("../services/ocrService");
 const {
   createConfiguredMockBankProvider,
   verifyBankFdr
@@ -29,6 +32,10 @@ const APPLICATION_TYPES = new Set([
   "MODIFICATION",
   "OTHER"
 ]);
+
+function parseJson(value, fallback) {
+  return value ? JSON.parse(value) : fallback;
+}
 
 function isValidDate(value, date) {
   if (Number.isNaN(date.getTime())) {
@@ -667,14 +674,7 @@ router.post(
           verification.reason,
           verification.score,
           verification.confidence,
-          extraction.extracted
-            ? JSON.stringify({
-                ...extraction.extracted,
-                ocrStatus: extraction.status,
-                confidenceByField: extraction.confidenceByField,
-                rawText: extraction.rawText
-              })
-            : null,
+          serializeOcrExtraction(extraction),
           JSON.stringify(verification.fields),
           verification.reason,
           JSON.stringify(bankVerification),
@@ -1176,9 +1176,22 @@ router.get(
             v.ocr_confidence,
             v.extracted_data,
             v.comparison_results,
+            v.bank_verification_result,
+            v.verification_checks,
             v.review_reason,
             v.verification_source,
             v.verified_at,
+            (
+              SELECT source.verification_source
+              FROM verifications source
+              WHERE source.fdr_id = f.id
+                AND source.verification_source IS NOT NULL
+                AND source.verification_source NOT LIKE '%OFFICER%'
+                AND source.verification_source NOT LIKE '%MANUAL%'
+                AND source.verification_source NOT LIKE '%BANK%'
+              ORDER BY source.verified_at DESC, source.id DESC
+              LIMIT 1
+            ) AS ocr_provider,
 
             a.application_type,
 
@@ -1218,6 +1231,43 @@ router.get(
         );
 
 
+      const records = fdrs.map((fdr) => {
+        const extracted = parseJson(fdr.extracted_data, null);
+        const bankVerification = parseJson(
+          fdr.bank_verification_result,
+          null
+        );
+        const comparisons = parseJson(fdr.comparison_results, []);
+        const checks = parseJson(fdr.verification_checks, []);
+
+        return {
+          ...fdr,
+          verification: fdr.verification_result
+            ? {
+                status: fdr.verification_result,
+                score: fdr.verification_score,
+                message: fdr.review_reason,
+                ocr: {
+                  status: extracted?.ocrStatus || "NOT_AVAILABLE",
+                  provider:
+                    extracted?.ocrProvider ||
+                    fdr.ocr_provider ||
+                    "NOT_AVAILABLE",
+                  confidence: fdr.ocr_confidence,
+                  extracted,
+                  rawText: extracted?.rawText || "",
+                  message:
+                    checks.find((check) => check.key === "document_ocr")
+                      ?.explanation || "OCR result is not available."
+                },
+                bank: bankVerification,
+                comparisons,
+                checks
+              }
+            : null
+        };
+      });
+
       return res.json({
 
         institution: {
@@ -1236,8 +1286,7 @@ router.get(
         count:
           fdrs.length,
 
-        fdrs
-
+        fdrs: records
       });
 
 

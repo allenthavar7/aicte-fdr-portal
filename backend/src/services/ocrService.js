@@ -287,6 +287,16 @@ async function extractFdrData(document) {
   };
 }
 
+function serializeOcrExtraction(extraction) {
+  return JSON.stringify({
+    ...(extraction?.extracted || {}),
+    ocrStatus: extraction?.status || "NOT_AVAILABLE",
+    ocrProvider: extraction?.provider || "NOT_AVAILABLE",
+    confidenceByField: extraction?.confidenceByField || {},
+    rawText: extraction?.rawText || ""
+  });
+}
+
 async function shutdownOcrWorker() {
   const activeWorker = workerPromise;
   workerPromise = null;
@@ -299,5 +309,6 @@ async function shutdownOcrWorker() {
 
 module.exports = {
   extractFdrData,
+  serializeOcrExtraction,
   shutdownOcrWorker
 };

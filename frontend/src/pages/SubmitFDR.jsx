@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AutomatedVerificationResult from "../components/AutomatedVerificationResult";
 
 function SubmitFDR() {
   const navigate = useNavigate();
@@ -26,10 +27,12 @@ function SubmitFDR() {
   });
 
   const [file, setFile] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [submissionResult, setSubmissionResult] = useState(null);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -138,6 +141,7 @@ function SubmitFDR() {
 
     setError("");
     setSuccess("");
+    setSubmissionResult(null);
 
     const token = localStorage.getItem("token");
 
@@ -238,10 +242,19 @@ function SubmitFDR() {
         );
       }
 
-      const verification = result.verification;
-      setSuccess(
-        `FDR submitted. Automated result: ${verification?.status || result.fdr.verificationStatus} (${verification?.score ?? result.fdr.verificationScore}/100). OCR: ${verification?.ocr?.message || "result unavailable"} Bank: ${verification?.bank?.status || "PENDING"} — ${verification?.bank?.message || "Bank result unavailable."}`
-      );
+      setSuccess(result.message || "FDR submitted successfully.");
+      setSubmissionResult(result.verification || {
+        status: result.fdr?.verificationStatus || result.fdr?.verificationResult,
+        score: result.fdr?.verificationScore,
+        ocr: {
+          provider: result.fdr?.ocrProvider,
+          confidence: result.fdr?.ocrConfidence,
+          extracted: null,
+          rawText: ""
+        },
+        bank: result.fdr?.bankVerification,
+        comparisons: result.fdr?.comparisonResults || []
+      });
 
     } catch (err) {
       console.error("Submit FDR error:", err);
@@ -471,10 +484,54 @@ function SubmitFDR() {
 
           )}
 
+          {submissionResult && (
+            <>
+              <AutomatedVerificationResult verification={submissionResult} />
+              <div className="submission-result-actions">
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => navigate("/fdrs")}
+                >
+                  View My FDRs
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => {
+                    setPurpose("");
+                    setFile(null);
+                    setFileInputKey((key) => key + 1);
+                    setSuccess("");
+                    setSubmissionResult(null);
+                    setError("");
+                    setFormData({
+                      institutionName: "VJTI Engineering College",
+                      programmeName: "",
+                      programmeLevel: "",
+                      discipline: "",
+                      currentIntake: "",
+                      proposedIntake: "",
+                      academicYear: "",
+                      previousFdrNumber: "",
+                      applicationDescription: "",
+                      fdrNumber: "",
+                      bankName: "",
+                      amount: "",
+                      issueDate: "",
+                      maturityDate: ""
+                    });
+                  }}
+                >
+                  Submit Another FDR
+                </button>
+              </div>
+            </>
+          )}
 
           {/* PURPOSE SELECTION */}
 
-          {!purpose && (
+          {!submissionResult && !purpose && (
 
             <section className="panel">
 
@@ -653,7 +710,7 @@ function SubmitFDR() {
 
           {/* FORM */}
 
-          {purpose && (
+          {!submissionResult && purpose && (
 
             <form onSubmit={handleSubmit}>
 
@@ -1236,6 +1293,7 @@ function SubmitFDR() {
 
                       <input
                         id="fdrDocument"
+                        key={fileInputKey}
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
                         onChange={handleFileChange}

@@ -126,6 +126,14 @@ export async function getOfficerFdrDocument(token, fdrId, documentId) {
   return response.blob();
 }
 
+export async function getOfficerFdrDetail(token, fdrId) {
+  return getOfficerResource(
+    `/officer/fdrs/${fdrId}`,
+    token,
+    "Unable to fetch FDR details"
+  );
+}
+
 async function getOfficerResource(path, token, fallbackMessage, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,

@@ -1,3 +1,7 @@
+const {
+  OCR_CONFIDENCE_THRESHOLD
+} = require("../../../shared/fdrPriority.mjs");
+
 function normalizeText(value) {
   return String(value ?? "")
     .normalize("NFKC")
@@ -124,7 +128,7 @@ function verificationCheckSummary({
     ? "FAILED"
     : confidence === null
       ? "PENDING"
-      : confidence < 0.8
+      : confidence < OCR_CONFIDENCE_THRESHOLD
         ? "FAILED"
         : !hasAllOcrFields
           ? "PENDING"
@@ -136,7 +140,7 @@ function verificationCheckSummary({
   const bankStatus =
     rawBankStatus === "VERIFIED"
       ? "PASS"
-      : ["FAILED", "NOT_FOUND", "MISMATCH"].includes(rawBankStatus)
+      : ["FAILED", "MISMATCH"].includes(rawBankStatus)
         ? "FAILED"
         : "PENDING";
 
@@ -222,8 +226,10 @@ function verificationCheckSummary({
         ? extractionMessage || "Document OCR failed."
         : confidence === null
           ? extractionMessage || "OCR is not configured; document was not analyzed."
-          : confidence < 0.8
-            ? "OCR confidence is below the required 80% threshold."
+          : confidence < OCR_CONFIDENCE_THRESHOLD
+            ? `OCR confidence is below the required ${Math.round(
+                OCR_CONFIDENCE_THRESHOLD * 100
+              )}% threshold.`
             : documentOcrStatus === "PASS"
               ? "Document OCR completed with all comparable fields matching."
               : "OCR did not detect all required fields."

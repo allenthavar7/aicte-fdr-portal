@@ -1,6 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
+import OfficerLayout from "../components/OfficerLayout";
+import {
+  FdrPriorityBadge,
+  FdrPrioritySummary
+} from "../components/FdrPriority";
+import { getFdrPriority } from "../utils/fdrPriority";
+import {
+  buildExpiryForecast,
+  buildStatusDistribution,
+  formatAnalyticsAmount
+} from "../utils/officerAnalytics";
+import {
   getInstitutionCompliance,
   getOfficerFdrDocument,
   getOfficerFdrs,
@@ -39,6 +62,32 @@ function formatDate(value) {
     day: "2-digit",
     month: "short",
     year: "numeric"
+  });
+}
+
+function dashboardPriority(fdr) {
+  if (fdr?.priority && typeof fdr.priority === "object") {
+    return fdr.priority;
+  }
+
+  const verificationLabel = String(
+    fdr?.verification_status || fdr?.verification || ""
+  ).toUpperCase().replaceAll(" ", "_");
+
+  return getFdrPriority({
+    ...fdr,
+    priority: undefined,
+    maturity_date: fdr?.maturity_date || fdr?.maturity,
+    verification_status: verificationLabel,
+    verification: fdr?.verification && typeof fdr.verification === "object"
+      ? fdr.verification
+      : {
+          result: verificationLabel,
+          comparisons: verificationLabel.includes("AMOUNT_MISMATCH")
+            ? [{ field: "amount", result: "MISMATCH" }]
+            : [],
+          bank_verification: fdr?.bank_verification
+        }
   });
 }
 
@@ -109,6 +158,30 @@ function formatAmount(value) {
   }).format(amount);
 }
 
+function StatusChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload;
+  return (
+    <div className="dashboard-chart-tooltip">
+      <strong>{item.status}</strong>
+      <span>FDRs: {item.count}</span>
+      <span>Percentage: {item.percentage.toFixed(1)}%</span>
+    </div>
+  );
+}
+
+function ExpiryChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload;
+  return (
+    <div className="dashboard-chart-tooltip">
+      <strong>{item.month}</strong>
+      <span>FDRs expiring: {item.count}</span>
+      <span>Total value: {formatAnalyticsAmount(item.totalValue, true)}</span>
+    </div>
+  );
+}
+
 function formatComparisonValue(field, value) {
   if (value === null || value === undefined || value === "") {
     return "Not detected";
@@ -125,74 +198,42 @@ function formatComparisonValue(field, value) {
   return String(value);
 }
 
-const statusDistributionCategories = [
-  {
-    key: "active",
-    label: "Active",
-    count: 1120,
-    percentage: "71.8%",
-    color: "#29b97b"
-  },
-  {
-    key: "expiring_soon",
-    label: "Expiring Soon",
-    count: 62,
-    percentage: "5.0%",
-    color: "#f7c72d"
-  },
-  {
-    key: "matured",
-    label: "Matured",
-    count: 18,
-    percentage: "1.4%",
-    color: "#ef5b63"
-  },
-  {
-    key: "pending_verification",
-    label: "Pending Verification",
-    count: 43,
-    percentage: "3.4%",
-    color: "#4c9be8"
-  },
-  {
-    key: "renewal_pending",
-    label: "Renewal Pending",
-    count: 27,
-    percentage: "2.2%",
-    color: "#9b67db"
-  },
-  {
-    key: "release_requested",
-    label: "Release Requested",
-    count: 8,
-    percentage: "0.6%",
-    color: "#f38a34"
-  },
-  {
-    key: "inactive",
-    label: "Inactive",
-    count: 70,
-    percentage: "5.6%",
-    color: "#a8b4c2"
+function getReviewIssue(fdr) {
+  const checks = fdr?.record?.verification?.checks || [];
+  const failedCheck = checks.find((item) => item.status === "FAILED");
+  if (failedCheck) {
+    const issueLabels = {
+      "Bank Name Match": "Bank name mismatch",
+      "Mock Bank Record Match": "Bank record not found or mismatched",
+      "Duplicate FDR Check": "Duplicate FDR number",
+      "Document OCR": "Document needs manual review",
+      "Institution Match": "Institution details need review"
+    };
+    return issueLabels[failedCheck.label] || failedCheck.label || "A check failed";
   }
-];
 
-const statusDistributionTotal = 1248;
-
-function buildDonutGradient() {
-  const categoryCountTotal = statusDistributionCategories.reduce(
-    (total, category) => total + category.count,
-    0
+  const mismatch = fdr?.record?.verification?.comparisons?.find(
+    (item) => item.result === "MISMATCH"
   );
-  let accumulated = 0;
-  const segments = statusDistributionCategories.map(({ count, color }) => {
-    const start = (accumulated / categoryCountTotal) * 100;
-    accumulated += count;
-    const end = (accumulated / categoryCountTotal) * 100;
-    return `${color} ${start}% ${end}%`;
-  });
+  if (mismatch) {
+    return `${formatLabel(mismatch.field)} does not match`;
+  }
 
-  return `conic-gradient(${segments.join(", ")})`;
+  const bankStatus = fdr?.record?.verification?.bank_verification?.status;
+  if (bankStatus && bankStatus !== "VERIFIED") {
+    return bankStatus === "PENDING"
+      ? "Bank confirmation pending"
+      : "Bank record needs review";
+  }
+
+  if (fdr?.record?.verification?.review_reason) {
+    return fdr.record.verification.review_reason;
+  }
+
+  return String(fdr?.record?.verification_status || fdr?.verification)
+    .toUpperCase() === "VERIFIED"
+    ? "No open verification issues"
+    : "Review required";
 }
 
 function isNewSubmission(createdAt) {
@@ -286,86 +327,6 @@ const stats = [
     change: "14%",
     color: "blue",
     icon: "↑",
-  },
-];
-
-const recentFdrs = [
-  {
-    number: "FDR125678",
-    institution: "ABC Engineering College",
-    bank: "SBI",
-    amount: "₹10,00,000",
-    maturity: "31 Dec 2027",
-    status: "Active",
-    verification: "Verified",
-    submitted: "24 Oct 2026",
-  },
-  {
-    number: "FDR125679",
-    institution: "XYZ Institute",
-    bank: "HDFC",
-    amount: "₹5,00,000",
-    maturity: "15 Dec 2026",
-    status: "Expiring Soon",
-    verification: "Verified",
-    submitted: "24 Oct 2026",
-  },
-  {
-    number: "FDR125680",
-    institution: "PQR College",
-    bank: "ICICI",
-    amount: "₹8,00,000",
-    maturity: "01 Jan 2026",
-    status: "Matured",
-    verification: "Verified",
-    submitted: "23 Oct 2026",
-  },
-  {
-    number: "FDR125681",
-    institution: "LMN Technical Institute",
-    bank: "Axis Bank",
-    amount: "₹10,00,000",
-    maturity: "10 Feb 2027",
-    status: "Active",
-    verification: "Amount Mismatch",
-    submitted: "23 Oct 2026",
-  },
-  {
-    number: "FDR125682",
-    institution: "RST Engineering College",
-    bank: "Punjab National Bank",
-    amount: "₹5,00,000",
-    maturity: "20 Jul 2027",
-    status: "Active",
-    verification: "Pending",
-    submitted: "22 Oct 2026",
-  },
-];
-
-const verificationQueue = [
-  {
-    number: "FDR125690",
-    institution: "GHI College",
-    bank: "HDFC",
-    amount: "₹10,00,000",
-    submitted: "24 Oct 2026",
-    priority: "High",
-  },
-  {
-    number: "FDR125691",
-    institution: "JKL Institute",
-    bank: "SBI",
-    amount: "₹5,00,000",
-    submitted: "24 Oct 2026",
-    priority: "High",
-  },
-  {
-    number: "FDR125692",
-    institution: "MNO College",
-    bank: "ICICI",
-    amount: "₹8,00,000",
-    submitted: "23 Oct 2026",
-    priority: "Medium",
   },
 ];
 
@@ -864,11 +825,7 @@ export default function OfficerDashboard() {
     }
   }
 
-  const realFdrNumbers = new Set(
-    realFdrs.map((fdr) => String(fdr.fdr_number).trim().toLocaleLowerCase("en-IN"))
-  );
-  const displayedFdrs = [
-    ...realFdrs.map((fdr) => ({
+  const displayedFdrs = realFdrs.map((fdr) => ({
       id: `real-${fdr.id}`,
       number: fdr.fdr_number,
       institution: fdr.institution?.name || "Unknown institution",
@@ -883,34 +840,20 @@ export default function OfficerDashboard() {
           formatLabel(fdr.application.application_type)
         : "—",
       verificationScore: fdr.verification?.score,
+      priority: dashboardPriority(fdr),
       submitted: formatDate(fdr.created_at),
       isReal: true,
+      isDemo: String(fdr.fdr_number).startsWith("DEMO-"),
       isNew: isNewSubmission(fdr.created_at),
       record: fdr
-    })),
-    ...recentFdrs
-      .filter(
-        (fdr) =>
-          !realFdrNumbers.has(
-            String(fdr.number).trim().toLocaleLowerCase("en-IN")
-          )
-      )
-      .map((fdr) => ({
-      ...fdr,
-      id: `demo-${fdr.number}`,
-      isReal: false,
-      isNew: false,
-      verificationScore: null,
-      record: fdr
-    }))
-  ];
+    }));
 
   function openFdrDetails(fdr) {
     setDocumentError("");
     setReviewActionError("");
     setReviewReasonInput("");
     if (fdr.isReal) {
-      setSelectedFdr(fdr.record);
+      setSelectedFdr({ ...fdr.record, isDemo: fdr.isDemo });
       setSearchParams({});
       return;
     }
@@ -924,6 +867,7 @@ export default function OfficerDashboard() {
     setSelectedFdr({
       id: fdr.id,
       isDemo: true,
+      priority: dashboardPriority(record),
       fdr_number: record.number,
       bank_name: record.bank,
       amount: amountValue(record.amount),
@@ -1038,39 +982,14 @@ export default function OfficerDashboard() {
         bank: fdr.bank_name,
         amount: formatAmount(fdr.amount),
         submitted: formatDate(fdr.created_at),
-        priority:
-          ["FLAGGED", "FAILED"].includes(
-            fdr.verification_status?.toUpperCase()
-          ) ||
-          fdr.verification?.checks?.some((item) => item.status === "FAILED") ||
-          fdr.verification?.comparisons?.some(
-            (item) => item.result === "MISMATCH"
-          ) ||
-          fdr.verification?.bank_verification?.status?.toUpperCase() ===
-            "FAILED" ||
-          (Number.isFinite(fdr.verification?.score) &&
-            fdr.verification.score < 70)
-            ? "High"
-            : "Medium",
+        priority: dashboardPriority(fdr),
         verification: formatLabel(fdr.verification_status),
         reviewReason: fdr.verification?.review_reason,
         isReal: true,
+        isDemo: String(fdr.fdr_number).startsWith("DEMO-"),
         record: fdr
       })),
-    ...verificationQueue
-      .filter(
-        (item) =>
-          !realFdrNumbers.has(
-            String(item.number).trim().toLocaleLowerCase("en-IN")
-          )
-      )
-      .map((item) => ({
-        ...item,
-        id: `demo-${item.number}`,
-        isReal: false,
-        record: item
-      }))
-  ];
+  ].sort((left, right) => right.priority.score - left.priority.score);
 
   const fallbackRealStats = {
     total_fdrs: realFdrs.length,
@@ -1092,41 +1011,19 @@ export default function OfficerDashboard() {
       submittedWithinLastWeek(fdr.created_at)
     ).length
   };
-  const demoDisplayedFdrs = displayedFdrs.filter((fdr) => !fdr.isReal);
-  const demoFallbackStats = {
-    total_fdrs: demoDisplayedFdrs.length,
-    verified: demoDisplayedFdrs.filter(
-      (fdr) => String(fdr.verification).toUpperCase() === "VERIFIED"
-    ).length,
-    flagged: demoDisplayedFdrs.filter((fdr) =>
-      ["FLAGGED", "AMOUNT MISMATCH"].includes(
-        String(fdr.verification).toUpperCase()
-      )
-    ).length,
-    failed: demoDisplayedFdrs.filter(
-      (fdr) => String(fdr.verification).toUpperCase() === "FAILED"
-    ).length,
-    total_deposit_amount: demoDisplayedFdrs.reduce(
-      (total, fdr) => total + Number(amountValue(fdr.amount)),
-      0
-    ),
-    institutions: new Set(
-      demoDisplayedFdrs.map((fdr) =>
-        String(fdr.institution || "").trim().toLocaleLowerCase("en-IN")
-      )
-    ).size,
-    recent_submissions: demoDisplayedFdrs.filter((fdr) =>
-      submittedWithinLastWeek(fdr.submitted)
-    ).length
-  };
   const hasLiveDatabaseFdrs =
     (officerStats?.total_fdrs ?? realFdrs.length) > 0;
   const displayedStats = hasLiveDatabaseFdrs
     ? officerStats || fallbackRealStats
-    : demoFallbackStats;
+    : fallbackRealStats;
+  const hasSyntheticRecords = realFdrs.some((fdr) =>
+    String(fdr.fdr_number).startsWith("DEMO-")
+  );
   const statsSourceCaption = hasLiveDatabaseFdrs
-    ? "Live SQLite data"
-    : "Demo fallback (no live FDR records)";
+    ? hasSyntheticRecords
+      ? "SQLite data · includes clearly marked synthetic demos"
+      : "Live SQLite data"
+    : "No database FDR records";
   const dashboardStats = stats.map((item) => ({
     ...item,
     value:
@@ -1200,119 +1097,51 @@ export default function OfficerDashboard() {
     (notification) => !notification.is_read
   ).length;
   const liveStats = officerStats || fallbackRealStats;
+  const statusDistributionCategories = buildStatusDistribution(realFdrs);
+  const visibleStatusSegments = statusDistributionCategories.filter(
+    (category) => category.count > 0
+  );
+  const expiryForecast = buildExpiryForecast(realFdrs);
+  const statusDistributionTotal = realFdrs.length;
   const selectedBankVerification =
     selectedFdr?.verification?.bank_verification || null;
+  const selectedFailedChecks =
+    selectedFdr?.verification?.checks?.filter(
+      (item) => item.status === "FAILED"
+    ) || [];
+  const selectedPendingChecks =
+    selectedFdr?.verification?.checks?.filter(
+      (item) => item.status === "PENDING"
+    ) || [];
+  const selectedReviewFindings =
+    selectedFailedChecks.length > 0
+      ? selectedFailedChecks
+      : selectedPendingChecks;
+  const canRecordOfficerDecision =
+    selectedFdr &&
+    !selectedFdr.isDemo &&
+    ["FLAGGED", "FAILED", "PENDING"].includes(
+      selectedFdr.verification_status?.toUpperCase()
+    );
+  const approvalBlockers = [
+    ...(selectedFdr?.verification?.checks || [])
+      .filter((item) => item.status !== "PASS")
+      .map((item) => `${item.label}: ${formatLabel(item.status)}`),
+    ...(String(selectedBankVerification?.status || "").toUpperCase() !==
+    "VERIFIED"
+      ? [
+          `Bank verification: ${formatLabel(
+            selectedBankVerification?.status || "NOT RUN"
+          )}`
+        ]
+      : [])
+  ];
 
   return (
-    <div className="officer-layout">
+    <OfficerLayout releaseCount={releaseRequestCount}>
       <style>{`
         * {
           box-sizing: border-box;
-        }
-
-        .officer-layout {
-          min-height: 100vh;
-          display: flex;
-          background: #f3f6fa;
-          color: #10233f;
-          font-family: Arial, Helvetica, sans-serif;
-        }
-
-        .officer-sidebar {
-          width: 220px;
-          min-height: 100vh;
-          background: #06264d;
-          color: white;
-          position: fixed;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          overflow-y: auto;
-        }
-
-        .officer-brand {
-          height: 82px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          background: #ffffff;
-          color: #09284e;
-        }
-
-        .brand-logo {
-          width: 45px;
-          height: 45px;
-          border-radius: 50%;
-          background: #f4c542;
-          color: #08294e;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 800;
-          font-size: 12px;
-          border: 3px solid #e4b12c;
-        }
-
-        .brand-text {
-          font-size: 13px;
-          font-weight: 700;
-          line-height: 1.25;
-        }
-
-        .brand-subtitle {
-          display: block;
-          margin-top: 4px;
-          font-weight: 400;
-          color: #53657d;
-        }
-
-        .officer-nav {
-          padding: 18px 0;
-        }
-
-        .nav-link {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 13px 20px;
-          color: #dbe8f7;
-          text-decoration: none;
-          font-size: 14px;
-          border-left: 3px solid transparent;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-          background: #0d4b91;
-          color: white;
-          border-left-color: #4ba3ff;
-        }
-
-        .nav-icon {
-          width: 20px;
-          text-align: center;
-          font-size: 17px;
-        }
-
-        .nav-count {
-          margin-left: auto;
-          min-width: 22px;
-          height: 22px;
-          padding: 0 6px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #ef4444;
-          color: white;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .officer-main {
-          margin-left: 220px;
-          width: calc(100% - 220px);
         }
 
         .officer-header {
@@ -1595,6 +1424,77 @@ export default function OfficerDashboard() {
           padding: 15px;
         }
 
+        .dashboard-donut-chart {
+          position: relative;
+          width: 180px;
+          height: 190px;
+          flex: 0 0 180px;
+        }
+
+        .dashboard-donut-center {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          pointer-events: none;
+        }
+
+        .dashboard-donut-center strong {
+          color: #102d4f;
+          font-size: 20px;
+        }
+
+        .dashboard-donut-center span {
+          color: #60738e;
+          font-size: 10px;
+        }
+
+        .dashboard-expiry-chart {
+          width: 100%;
+          height: 195px;
+          padding: 3px 12px 8px;
+        }
+
+        .dashboard-chart-subtitle,
+        .dashboard-demo-caption {
+          color: #718196;
+          font-size: 9px;
+        }
+
+        .dashboard-demo-caption {
+          margin: 0 14px 10px;
+        }
+
+        .dashboard-demo-label {
+          padding: 4px 7px;
+          border: 1px solid #e5c884;
+          border-radius: 4px;
+          background: #fff8e7;
+          color: #72530d;
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .dashboard-chart-tooltip {
+          display: grid;
+          gap: 4px;
+          min-width: 135px;
+          padding: 9px 11px;
+          border: 1px solid #dbe4ee;
+          border-radius: 5px;
+          background: #fff;
+          box-shadow: 0 5px 18px rgb(20 45 70 / 13%);
+          color: #4f647b;
+          font-size: 10px;
+        }
+
+        .dashboard-chart-tooltip strong {
+          color: #123b73;
+          font-size: 11px;
+        }
+
         .donut {
           width: 150px;
           height: 150px;
@@ -1701,6 +1601,28 @@ export default function OfficerDashboard() {
           margin-top: 13px;
         }
 
+        .queue-summary {
+          margin-top: 4px;
+          color: #66788f;
+          font-size: 12px;
+        }
+
+        .filter-disclosure {
+          border-bottom: 1px solid #edf0f4;
+        }
+
+        .filter-disclosure > summary {
+          padding: 10px 14px;
+          color: #075ea8;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .filter-disclosure[open] > summary {
+          border-bottom: 1px solid #edf0f4;
+        }
+
         .table-wrapper {
           width: 100%;
           overflow-x: auto;
@@ -1747,6 +1669,21 @@ export default function OfficerDashboard() {
           padding: 10px 9px;
           border-bottom: 1px solid #edf0f4;
           white-space: nowrap;
+        }
+
+        .queue-secondary {
+          display: block;
+          margin-top: 4px;
+          color: #718196;
+          font-size: 11px;
+          font-weight: 400;
+          white-space: normal;
+        }
+
+        .queue-issue {
+          max-width: 230px;
+          color: #52667d;
+          white-space: normal !important;
         }
 
         .officer-table tr:last-child td {
@@ -1852,39 +1789,247 @@ export default function OfficerDashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 16px;
           background: rgba(7, 25, 48, 0.58);
         }
 
         .fdr-modal {
-          width: min(760px, 100%);
-          max-height: min(90vh, 850px);
-          overflow-y: auto;
-          padding: 22px;
-          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          width: min(1080px, 100%);
+          max-height: min(94vh, 960px);
+          overflow: hidden;
+          border-radius: 12px;
           background: white;
           box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
         }
 
         .fdr-modal-header {
+          flex: 0 0 auto;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 18px;
+          gap: 16px;
+          padding: 16px 22px;
+          border-bottom: 1px solid #e5eaf0;
+          background: white;
         }
 
         .fdr-modal-title {
           margin: 0;
-          font-size: 19px;
+          color: #102d4f;
+          font-size: 21px;
+        }
+
+        .review-eyebrow {
+          margin-bottom: 4px;
+          color: #66788f;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: .06em;
+          text-transform: uppercase;
         }
 
         .fdr-modal-close {
+          width: 38px;
+          height: 38px;
           border: 0;
-          background: transparent;
+          border-radius: 7px;
+          background: #f4f7fa;
           color: #536981;
-          font-size: 24px;
+          font-size: 25px;
           cursor: pointer;
+        }
+
+        .fdr-modal-close:hover {
+          background: #e9eff5;
+        }
+
+        .fdr-review-scroll {
+          min-height: 0;
+          overflow-y: auto;
+          padding: 18px 22px 22px;
+        }
+
+        .review-summary {
+          padding: 16px;
+          border: 1px solid #e0e7ef;
+          border-radius: 9px;
+          background: #fbfcfe;
+        }
+
+        .review-summary-top,
+        .review-attention-heading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .review-summary-top > div > strong {
+          color: #102d4f;
+          font-size: 15px;
+        }
+
+        .review-summary-facts {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+          margin-top: 16px;
+          padding-top: 13px;
+          border-top: 1px solid #e5eaf0;
+        }
+
+        .review-summary-facts span,
+        .review-summary-facts strong {
+          display: block;
+        }
+
+        .review-summary-facts span {
+          margin-bottom: 4px;
+          color: #66788f;
+          font-size: 11px;
+        }
+
+        .review-summary-facts strong {
+          color: #102d4f;
+          font-size: 14px;
+        }
+
+        .review-attention {
+          margin-top: 14px;
+          padding: 14px 16px;
+          border: 1px solid #d7e5f3;
+          border-radius: 9px;
+          background: #f3f8fd;
+          color: #344b66;
+          font-size: 13px;
+        }
+
+        .review-attention.has-findings {
+          border-color: #f0d7aa;
+          background: #fffaf0;
+        }
+
+        .review-attention-heading strong {
+          color: #102d4f;
+          font-size: 14px;
+        }
+
+        .review-attention-heading > span {
+          color: #52667d;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .review-attention ul {
+          display: grid;
+          gap: 7px;
+          margin: 10px 0 0;
+          padding-left: 20px;
+        }
+
+        .review-attention p {
+          margin: 8px 0 0;
+          line-height: 1.5;
+        }
+
+        .review-demo-note {
+          padding-top: 9px;
+          border-top: 1px solid #d7e5f3;
+          color: #1e3a8a;
+          font-weight: 700;
+        }
+
+        .review-accordion {
+          margin-top: 10px;
+          border: 1px solid #e0e7ef;
+          border-radius: 8px;
+          background: white;
+        }
+
+        .review-accordion > summary {
+          padding: 13px 15px;
+          color: #183b60;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .review-accordion[open] > summary {
+          border-bottom: 1px solid #e5eaf0;
+        }
+
+        .review-accordion > .fdr-details-section {
+          padding: 0 15px 15px;
+        }
+
+        .review-action-footer {
+          flex: 0 0 auto;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 12px 22px;
+          border-top: 1px solid #e0e7ef;
+          background: white;
+          box-shadow: 0 -6px 16px rgba(16, 35, 63, .05);
+        }
+
+        .approval-blocker-note {
+          flex: 1 0 100%;
+          margin: -8px 0 0;
+          color: #8a4b08;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+
+        .review-action-input {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .review-action-input label {
+          color: #344b66;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .review-action-input label span {
+          color: #718196;
+          font-weight: 400;
+        }
+
+        .review-action-buttons {
+          display: flex;
+          flex: 0 0 auto;
+          gap: 8px;
+        }
+
+        .review-action-buttons .action-button {
+          min-height: 38px;
+          padding: 0 15px;
+          font-size: 12px;
+        }
+
+        .review-action-buttons .review-approve-button {
+          border-color: #075ea8;
+          background: #075ea8;
+          color: white;
+        }
+
+        .review-action-buttons .review-approve-button:hover:not(:disabled) {
+          background: #064d89;
+        }
+
+        .review-action-buttons .review-reject-button {
+          color: #a42332;
+        }
+
+        .review-action-buttons .action-button:disabled {
+          cursor: not-allowed;
+          opacity: .55;
         }
 
         .fdr-details-section {
@@ -2070,17 +2215,50 @@ export default function OfficerDashboard() {
 
         .review-reason-input {
           width: 100%;
-          min-height: 70px;
-          margin: 8px 0;
+          min-height: 54px;
+          margin: 6px 0 0;
           padding: 9px;
           border: 1px solid #ccd8e5;
           border-radius: 5px;
           font: inherit;
-          font-size: 12px;
+          font-size: 13px;
           resize: vertical;
         }
 
         @media (max-width: 560px) {
+          .fdr-modal-overlay {
+            padding: 0;
+          }
+
+          .fdr-modal {
+            width: 100%;
+            max-height: 100vh;
+            min-height: 100vh;
+            border-radius: 0;
+          }
+
+          .fdr-modal-header,
+          .fdr-review-scroll {
+            padding-right: 14px;
+            padding-left: 14px;
+          }
+
+          .review-summary-facts {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .review-action-footer {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 14px;
+          }
+
+          .review-action-buttons {
+            justify-content: flex-end;
+          }
+
           .fdr-details-grid {
             grid-template-columns: 1fr;
           }
@@ -2240,30 +2418,6 @@ export default function OfficerDashboard() {
         }
 
         @media (max-width: 950px) {
-          .officer-sidebar {
-            width: 75px;
-          }
-
-          .officer-main {
-            margin-left: 75px;
-            width: calc(100% - 75px);
-          }
-
-          .brand-text,
-          .nav-link span:not(.nav-icon),
-          .nav-count {
-            display: none;
-          }
-
-          .officer-brand {
-            justify-content: center;
-          }
-
-          .nav-link {
-            justify-content: center;
-            padding: 14px;
-          }
-
           .dashboard-grid,
           .lower-grid {
             grid-template-columns: 1fr;
@@ -2291,6 +2445,11 @@ export default function OfficerDashboard() {
           .chart-section {
             flex-direction: column;
             height: auto;
+            gap: 10px;
+          }
+
+          .dashboard-expiry-chart {
+            height: 205px;
           }
 
           .officer-content {
@@ -2299,86 +2458,6 @@ export default function OfficerDashboard() {
         }
       `}</style>
 
-      <aside className="officer-sidebar">
-        <div className="officer-brand">
-          <div className="brand-logo">AICTE</div>
-
-          <div className="brand-text">
-            All India Council for Technical Education
-            <span className="brand-subtitle">
-              Security Deposit / FDR Portal
-            </span>
-          </div>
-        </div>
-
-        <nav className="officer-nav">
-          <Link className="nav-link active" to="/officer">
-            <span className="nav-icon">⌂</span>
-            <span>Dashboard</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/institutions">
-            <span className="nav-icon">▦</span>
-            <span>Institutions</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/fdrs">
-            <span className="nav-icon">▤</span>
-            <span>FDRs</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/renewals">
-            <span className="nav-icon">↻</span>
-            <span>Renewals</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/verification">
-            <span className="nav-icon">✓</span>
-            <span>Verification Queue</span>
-            <span className="nav-count">{pendingFdrs.length}</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/release-requests">
-            <span className="nav-icon">↑</span>
-            <span>Release Requests</span>
-            {releaseRequestCount > 0 && (
-              <span className="nav-count">{releaseRequestCount}</span>
-            )}
-          </Link>
-
-          <Link className="nav-link" to="/officer/reports">
-            <span className="nav-icon">▥</span>
-            <span>Reports & Analytics</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/audit-log">
-            <span className="nav-icon">◴</span>
-            <span>Audit Log</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/users">
-            <span className="nav-icon">♙</span>
-            <span>Manage Users</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/master-data">
-            <span className="nav-icon">▤</span>
-            <span>Master Data</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/settings">
-            <span className="nav-icon">⚙</span>
-            <span>Settings</span>
-          </Link>
-
-          <Link className="nav-link" to="/officer/help">
-            <span className="nav-icon">?</span>
-            <span>Help & Support</span>
-          </Link>
-        </nav>
-      </aside>
-
-      <main className="officer-main">
         <header className="officer-header">
           <div>
             <div className="header-title">
@@ -2499,8 +2578,8 @@ export default function OfficerDashboard() {
               {liveStats.verified +
                 liveStats.flagged +
                 liveStats.failed}{" "}
-              automated result(s) recorded from {liveStats.total_fdrs} real
-              FDR submission(s)
+              automated result(s) recorded from {liveStats.total_fdrs} database
+              FDR record(s)
             </span>
             <span style={{ marginLeft: 12, color: "#087b43" }}>
               {liveStats.verified} verified
@@ -2512,8 +2591,8 @@ export default function OfficerDashboard() {
               {liveStats.failed} failed
             </span>
             <div className="fdr-detail-label" style={{ marginTop: 6 }}>
-              This verification breakdown shows database records only. Demo
-              rows remain visible in the submissions list but are not counted.
+              Synthetic records are marked DEMO. Verification results remain
+              those stored in SQLite.
             </div>
           </section>
 
@@ -2523,37 +2602,47 @@ export default function OfficerDashboard() {
                 <div className="card-title">
                   FDR Status Distribution
                 </div>
+                {hasSyntheticRecords && <span className="dashboard-demo-label">DEMO records included</span>}
               </div>
 
               <div className="chart-section">
-                <div
-                  className="donut"
-                  style={{
-                    background: buildDonutGradient()
-                  }}
-                >
-                  <div className="donut-inner">
-                    <div className="donut-number">
-                      {statusDistributionTotal.toLocaleString("en-IN")}
-                    </div>
-
-                    <div className="donut-label">
-                      Total FDRs
-                    </div>
+                <div className="dashboard-donut-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={visibleStatusSegments}
+                        dataKey="count"
+                        nameKey="status"
+                        innerRadius="62%"
+                        outerRadius="92%"
+                        paddingAngle={2}
+                        stroke="#fff"
+                        strokeWidth={2}
+                      >
+                        {visibleStatusSegments.map((category) => (
+                          <Cell key={category.status} fill={category.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<StatusChartTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="dashboard-donut-center">
+                    <strong>{statusDistributionTotal.toLocaleString("en-IN")}</strong>
+                    <span>Total FDRs</span>
                   </div>
                 </div>
 
                 <div className="legend">
                   {statusDistributionCategories.map(
-                    ({ key, label, color, count, percentage }) => (
-                      <div className="legend-row" key={key}>
+                    ({ status, color, count, percentage }) => (
+                      <div className="legend-row" key={status}>
                         <span
                           className="legend-dot"
                           style={{ background: color }}
                         />
-                        {label}
+                        {status}
                         <span className="legend-value">
-                          {count.toLocaleString("en-IN")} ({percentage})
+                          {count.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
                         </span>
                       </div>
                     )
@@ -2564,47 +2653,39 @@ export default function OfficerDashboard() {
 
             <section className="officer-card">
               <div className="card-header">
-                <div className="card-title">
-                  Sample FDRs Expiring in Next 6 Months
+                <div>
+                  <div className="card-title">FDRs Expiring in the Next 6 Months</div>
+                  <div className="dashboard-chart-subtitle">Monthly maturities and deposit value from database records</div>
                 </div>
 
-                <Link to="/officer/fdrs?expiry=NORMAL" className="view-all">
+                <Link to="/officer/fdrs" className="view-all">
                   View All
                 </Link>
               </div>
 
-              <div className="bar-chart">
-                {[
-                  ["Nov 2026", 12, 55],
-                  ["Dec 2026", 28, 105],
-                  ["Jan 2027", 34, 125],
-                  ["Feb 2027", 26, 95],
-                  ["Mar 2027", 18, 72],
-                  ["Apr 2027", 9, 42],
-                ].map(([month, value, height]) => (
-                  <div className="bar-column" key={month}>
-                    <div className="bar-value">
-                      {value}
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: `${height}px` }}
-                    />
-
-                    <div className="bar-label">
-                      {month}
-                    </div>
-                  </div>
-                ))}
+              <div className="dashboard-expiry-chart">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={expiryForecast} margin={{ top: 12, right: 12, left: -18, bottom: 2 }}>
+                    <CartesianGrid stroke="#e9eef4" vertical={false} />
+                    <XAxis dataKey="shortMonth" tick={{ fill: "#65778c", fontSize: 9 }} axisLine={{ stroke: "#dbe3ec" }} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fill: "#65778c", fontSize: 9 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ExpiryChartTooltip />} cursor={{ fill: "#eff5fb" }} />
+                    <Bar dataKey="count" name="FDRs Expiring" fill="#4b89bb" radius={[4, 4, 0, 0]} maxBarSize={38} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
+              {hasSyntheticRecords && <p className="dashboard-demo-caption">Includes synthetic DEMO records; values are illustrative, not real AICTE portfolio data.</p>}
             </section>
           </div>
 
           <section className="officer-card full-card">
             <div className="card-header">
-              <div className="card-title">
-                Recent FDR Submissions
+              <div>
+                <div className="card-title">FDR Review Queue</div>
+                <div className="queue-summary">
+                  Showing {visibleFdrs.length} of {displayedFdrs.length} records ·
+                  {" "}{pendingFdrs.length} need attention
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -2625,7 +2706,9 @@ export default function OfficerDashboard() {
               </div>
             </div>
 
-            <div className="officer-filters" aria-label="Filter FDR submissions">
+            <details className="filter-disclosure">
+              <summary>Search and filters</summary>
+              <div className="officer-filters" aria-label="Filter FDR submissions">
               <select
                 aria-label="Filter by verification status"
                 value={verificationFilter}
@@ -2727,7 +2810,8 @@ export default function OfficerDashboard() {
               >
                 Clear filters
               </button>
-            </div>
+              </div>
+            </details>
 
             {loadingFdrs && (
               <p className="fdr-fetch-message" role="status">
@@ -2749,17 +2833,13 @@ export default function OfficerDashboard() {
               <table className="officer-table">
                 <thead>
                   <tr>
-                    <th>FDR NUMBER</th>
-                    <th>INSTITUTION NAME</th>
-                    <th>BANK</th>
+                    <th>FDR / INSTITUTION</th>
+                    <th>PRIORITY</th>
                     <th>AMOUNT</th>
-                    <th>APPLICATION TYPE</th>
-                    <th>MATURITY DATE</th>
-                    <th>MATURITY STATUS</th>
-                    <th>STATUS</th>
+                    <th>MATURITY</th>
                     <th>VERIFICATION</th>
-                    <th>SCORE</th>
-                    <th>SUBMITTED ON</th>
+                    <th>NEEDS ATTENTION</th>
+                    <th>SUBMITTED</th>
                     <th>ACTION</th>
                   </tr>
                 </thead>
@@ -2772,27 +2852,23 @@ export default function OfficerDashboard() {
                         {fdr.isNew && (
                           <span className="new-indicator">NEW</span>
                         )}
+                        <span className="queue-secondary">
+                          {fdr.institution} · {fdr.bank}
+                        </span>
                       </td>
 
-                      <td>{fdr.institution}</td>
-                      <td>{fdr.bank}</td>
-                      <td>{fdr.amount}</td>
-                      <td>{fdr.applicationType}</td>
-                      <td>{fdr.maturity}</td>
-                      <td>{fdr.maturityStatus || "—"}</td>
-
                       <td>
-                        <StatusBadge
-                          type={
-                            fdr.status === "Active"
-                              ? "active"
-                              : fdr.status === "Expiring Soon"
-                              ? "expiring"
-                              : "matured"
-                          }
-                        >
-                          {fdr.status}
-                        </StatusBadge>
+                        <FdrPriorityBadge
+                          priority={fdr.priority}
+                          compact
+                        />
+                      </td>
+                      <td>{fdr.amount}</td>
+                      <td>
+                        {fdr.maturity}
+                        <span className="queue-secondary">
+                          {fdr.maturityStatus || "Maturity unknown"}
+                        </span>
                       </td>
 
                       <td>
@@ -2811,12 +2887,9 @@ export default function OfficerDashboard() {
                         </StatusBadge>
                       </td>
 
-                      <td>
-                        {Number.isFinite(fdr.verificationScore)
-                          ? `${fdr.verificationScore} / 100`
-                          : "—"}
+                      <td className="queue-issue">
+                        {getReviewIssue(fdr)}
                       </td>
-
                       <td>{fdr.submitted}</td>
 
                       <td>
@@ -2831,7 +2904,7 @@ export default function OfficerDashboard() {
                   ))}
                   {visibleFdrs.length === 0 && (
                     <tr>
-                      <td colSpan="12" style={{ textAlign: "center" }}>
+                      <td colSpan="8" style={{ textAlign: "center" }}>
                         No FDR submissions match these filters.
                       </td>
                     </tr>
@@ -2887,15 +2960,10 @@ export default function OfficerDashboard() {
                           </span>
                         </td>
                         <td>
-                          <StatusBadge
-                            type={
-                              item.priority === "High"
-                                ? "high"
-                                : "medium"
-                            }
-                          >
-                            {item.priority}
-                          </StatusBadge>
+                          <FdrPriorityBadge
+                            priority={item.priority}
+                            compact
+                          />
                         </td>
                         <td>
                           <button
@@ -2933,6 +3001,7 @@ export default function OfficerDashboard() {
                       <th>REQUEST ID</th>
                       <th>INSTITUTION</th>
                       <th>FDR NUMBER</th>
+                      <th>PRIORITY</th>
                       <th>REASON</th>
                       <th>STATUS</th>
                       <th>ACTION</th>
@@ -2947,6 +3016,14 @@ export default function OfficerDashboard() {
                         </td>
                         <td>{request.institution}</td>
                         <td>{request.fdr}</td>
+                        <td>
+                          <FdrPriorityBadge
+                            priority={dashboardPriority({
+                              fdr_number: request.fdr
+                            })}
+                            compact
+                          />
+                        </td>
                         <td>{request.reason}</td>
                         <td>
                           <StatusBadge
@@ -3158,8 +3235,6 @@ export default function OfficerDashboard() {
             </div>
           </div>
         </section>
-      </main>
-
       {selectedFdr && (
         <div
           className="fdr-modal-overlay"
@@ -3178,9 +3253,12 @@ export default function OfficerDashboard() {
             aria-labelledby="fdr-modal-title"
           >
             <div className="fdr-modal-header">
-              <h2 className="fdr-modal-title" id="fdr-modal-title">
-                FDR Details — {selectedFdr.fdr_number}
-              </h2>
+              <div>
+                <div className="review-eyebrow">FDR review</div>
+                <h2 className="fdr-modal-title" id="fdr-modal-title">
+                  {selectedFdr.fdr_number}
+                </h2>
+              </div>
               <button
                 className="fdr-modal-close"
                 type="button"
@@ -3194,32 +3272,141 @@ export default function OfficerDashboard() {
               </button>
             </div>
 
-            <section className="fdr-details-section">
-              <h3 className="fdr-details-heading">FDR Information</h3>
-              <div className="fdr-details-grid">
-                <DetailItem label="FDR number" value={selectedFdr.fdr_number} />
-                <DetailItem label="Bank" value={selectedFdr.bank_name} />
-                <DetailItem label="Amount" value={formatAmount(selectedFdr.amount)} />
-                <DetailItem label="Issue date" value={formatDate(selectedFdr.issue_date)} />
-                <DetailItem label="Maturity date" value={formatDate(selectedFdr.maturity_date)} />
-                <DetailItem
-                  label="Maturity classification"
-                  value={getMaturityStatus(selectedFdr.maturity_date)}
-                />
-                <DetailItem label="Status" value={formatLabel(selectedFdr.status)} />
-                <DetailItem
-                  label="Verification status"
-                  value={formatLabel(selectedFdr.verification_status)}
-                />
-                <DetailItem
-                  label="Submitted date"
-                  value={formatDate(selectedFdr.created_at)}
-                />
-              </div>
-            </section>
+            <div className="fdr-review-scroll">
+              <section className="review-summary">
+                <div className="review-summary-top">
+                  <div>
+                    <div className="review-eyebrow">Institution</div>
+                    <strong>{selectedFdr.institution?.name || "Unknown institution"}</strong>
+                  </div>
+                  <StatusBadge
+                    type={
+                      selectedFdr.verification_status?.toUpperCase() === "VERIFIED"
+                        ? "verified"
+                        : ["FLAGGED", "FAILED", "REJECTED"].includes(
+                            selectedFdr.verification_status?.toUpperCase()
+                          )
+                          ? "mismatch"
+                          : "pending"
+                    }
+                  >
+                    {formatLabel(selectedFdr.verification_status)}
+                  </StatusBadge>
+                </div>
+                <div className="review-summary-facts">
+                  <div><span>Bank</span><strong>{selectedFdr.bank_name || "—"}</strong></div>
+                  <div><span>Deposit amount</span><strong>{formatAmount(selectedFdr.amount)}</strong></div>
+                  <div><span>Maturity</span><strong>{formatDate(selectedFdr.maturity_date)}</strong></div>
+                </div>
+              </section>
 
-            <section className="fdr-details-section">
-              <h3 className="fdr-details-heading">Automated Verification</h3>
+              <FdrPrioritySummary
+                priority={dashboardPriority(selectedFdr)}
+                fdr={selectedFdr}
+              />
+
+              <section
+                className={`review-attention${selectedReviewFindings.length ? " has-findings" : ""}`}
+                aria-live="polite"
+              >
+                <div className="review-attention-heading">
+                  <strong>
+                    {selectedFailedChecks.length
+                      ? "Why this needs review"
+                      : selectedPendingChecks.length
+                        ? "Checks still pending"
+                        : selectedFdr.verification_status?.toUpperCase() === "VERIFIED"
+                          ? "No open verification issues"
+                          : "Review status"}
+                  </strong>
+                  {Number.isFinite(selectedFdr.verification?.score) && (
+                    <span>
+                      Score: {selectedFdr.verification.score}/100
+                    </span>
+                  )}
+                </div>
+                {selectedReviewFindings.length ? (
+                  <ul>
+                    {selectedReviewFindings.map((item) => (
+                      <li key={item.key}>
+                        <strong>{item.label}:</strong> {item.explanation}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>
+                    {selectedFdr.verification?.review_reason ||
+                      (selectedFdr.verification_status === "VERIFIED"
+                        ? "All recorded checks passed."
+                        : "Review the verification details below for the recorded result.")}
+                  </p>
+                )}
+                {(selectedBankVerification?.isMock ||
+                  selectedBankVerification?.source === "MOCK_BANK_PROVIDER") && (
+                  <p className="review-demo-note">
+                    Demo bank data only — this is not a live bank lookup.
+                  </p>
+                )}
+                {selectedFdr.documents?.[0] && (
+                  <button
+                    className="action-button"
+                    type="button"
+                    onClick={() =>
+                      handleOpenDocument(selectedFdr, selectedFdr.documents[0])
+                    }
+                  >
+                    Open submitted document
+                  </button>
+                )}
+                {documentError && (
+                  <p className="fdr-fetch-message document-error" role="alert">
+                    {documentError}
+                  </p>
+                )}
+                {verificationActionError && (
+                  <p className="fdr-fetch-message document-error" role="alert">
+                    {verificationActionError}
+                  </p>
+                )}
+              </section>
+
+              <details className="review-accordion">
+                <summary>FDR details</summary>
+                <section className="fdr-details-section">
+                  <div className="fdr-details-grid">
+                    <DetailItem label="FDR number" value={selectedFdr.fdr_number} />
+                    <DetailItem label="Bank" value={selectedFdr.bank_name} />
+                    <DetailItem label="Amount" value={formatAmount(selectedFdr.amount)} />
+                    <DetailItem label="Issue date" value={formatDate(selectedFdr.issue_date)} />
+                    <DetailItem label="Maturity date" value={formatDate(selectedFdr.maturity_date)} />
+                    <DetailItem
+                      label="Maturity classification"
+                      value={getMaturityStatus(selectedFdr.maturity_date)}
+                    />
+                    <DetailItem label="Status" value={formatLabel(selectedFdr.status)} />
+                    <DetailItem
+                      label="Verification status"
+                      value={formatLabel(selectedFdr.verification_status)}
+                    />
+                    <DetailItem
+                      label="Submitted date"
+                      value={formatDate(selectedFdr.created_at)}
+                    />
+                  </div>
+                </section>
+              </details>
+
+              <details className="review-accordion">
+                <summary>
+                  Verification details
+                  {selectedFailedChecks.length > 0 &&
+                    ` · ${selectedFailedChecks.length} failed`}
+                  {!selectedFailedChecks.length &&
+                    selectedPendingChecks.length > 0 &&
+                    ` · ${selectedPendingChecks.length} pending`}
+                </summary>
+                <section className="fdr-details-section">
+              <h3 className="fdr-details-heading">Automated verification</h3>
               <div className="fdr-details-grid">
                 <DetailItem
                   label="Automated result"
@@ -3325,11 +3512,6 @@ export default function OfficerDashboard() {
                     Run mock bank verification
                   </button>
                 </div>
-              )}
-              {verificationActionError && (
-                <p className="fdr-fetch-message document-error" role="alert">
-                  {verificationActionError}
-                </p>
               )}
               {selectedFdr.verification?.review_reason && (
                 <p className="verification-reason" role="note">
@@ -3471,57 +3653,11 @@ export default function OfficerDashboard() {
                   No automated comparison is stored for this record.
                 </p>
               )}
-              {!selectedFdr.isDemo &&
-                ["FLAGGED", "FAILED", "PENDING"].includes(
-                selectedFdr.verification_status?.toUpperCase()
-              ) && (
-                <div className="fdr-details-section">
-                  <h4 className="fdr-details-heading">Officer Decision</h4>
-                  <label className="fdr-detail-label" htmlFor="officer-review-reason">
-                    Required reason (recorded in the audit log)
-                  </label>
-                  <textarea
-                    id="officer-review-reason"
-                    className="review-reason-input"
-                    value={reviewReasonInput}
-                    onChange={(event) => setReviewReasonInput(event.target.value)}
-                    disabled={savingReviewAction}
-                  />
-                  {reviewActionError && (
-                    <p className="fdr-fetch-message document-error" role="alert">
-                      {reviewActionError}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      className="action-button"
-                      type="button"
-                      disabled={
-                        savingReviewAction ||
-                        runningVerification ||
-                        selectedFdr.verification?.checks?.some(
-                          (item) => item.status !== "PASS"
-                        ) ||
-                        selectedFdr.verification?.bank_verification?.status !==
-                          "VERIFIED"
-                      }
-                      onClick={() => handleOfficerDecision("APPROVE")}
-                    >
-                      {savingReviewAction ? "Saving…" : "Approve override"}
-                    </button>
-                    <button
-                      className="action-button"
-                      type="button"
-                      disabled={savingReviewAction}
-                      onClick={() => handleOfficerDecision("REJECT")}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              )}
-            </section>
+                </section>
+              </details>
 
+              <details className="review-accordion">
+                <summary>Institution, application and activity</summary>
             <section className="fdr-details-section">
               <h3 className="fdr-details-heading">Institution Information</h3>
               <div className="fdr-details-grid">
@@ -3732,9 +3868,76 @@ export default function OfficerDashboard() {
                 </p>
               )}
             </section>
+              </details>
+            </div>
+
+            {canRecordOfficerDecision && (
+              <footer className="review-action-footer">
+                <div className="review-action-input">
+                  <label htmlFor="officer-review-reason">
+                    Decision reason <span>(required and recorded)</span>
+                  </label>
+                  <textarea
+                    id="officer-review-reason"
+                    className="review-reason-input"
+                    value={reviewReasonInput}
+                    onChange={(event) => setReviewReasonInput(event.target.value)}
+                    disabled={savingReviewAction}
+                    placeholder="Explain the decision or the correction needed."
+                    rows={2}
+                  />
+                  {reviewActionError && (
+                    <p className="fdr-fetch-message document-error" role="alert">
+                      {reviewActionError}
+                    </p>
+                  )}
+                </div>
+                <div className="review-action-buttons">
+                  <button
+                    className="action-button review-reject-button"
+                    type="button"
+                    disabled={savingReviewAction || runningVerification}
+                    onClick={() => handleOfficerDecision("REJECT")}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    className="action-button review-approve-button"
+                    type="button"
+                    disabled={
+                      savingReviewAction ||
+                      runningVerification ||
+                      selectedFdr.verification?.checks?.some(
+                        (item) => item.status !== "PASS"
+                      ) ||
+                      selectedFdr.verification?.bank_verification?.status !==
+                        "VERIFIED"
+                    }
+                    onClick={() => handleOfficerDecision("APPROVE")}
+                    title={
+                      selectedFdr.verification?.checks?.some(
+                        (item) => item.status !== "PASS"
+                      ) ||
+                      selectedFdr.verification?.bank_verification?.status !==
+                        "VERIFIED"
+                        ? "Approval is available only after all checks and bank verification pass."
+                        : ""
+                    }
+                  >
+                    {savingReviewAction ? "Saving…" : "Approve"}
+                  </button>
+                </div>
+                {approvalBlockers.length > 0 && (
+                  <p className="approval-blocker-note" role="status">
+                    Approval is locked until these checks pass:{" "}
+                    {approvalBlockers.join("; ")}.
+                  </p>
+                )}
+              </footer>
+            )}
           </section>
         </div>
       )}
-    </div>
+    </OfficerLayout>
   );
 }

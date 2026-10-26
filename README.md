@@ -277,7 +277,14 @@ Run:
 node src/database/seed.js
 ```
 
-This creates the demo institution and officer accounts used by the application.
+This creates the existing VJTI/officer demo accounts and loads the centralized
+synthetic analytics fixture from `shared/officerDemoData.json`. The fixture adds
+five institutions, ten non-login demo institution users, fourteen FDRs, three
+linked renewal examples, and one release-request example. It is idempotent:
+records are identified by their demo codes and FDR numbers. Demo FDR numbers
+and institution names begin with `DEMO`; demo account addresses use the
+non-deliverable `.invalid` domain. These records are illustrative, not AICTE
+or bank records.
 
 ---
 
@@ -455,9 +462,13 @@ The officer can view information such as:
 - Flagged/failed submissions in the review queue
 - Authenticated FDR document previews
 
-Officer dashboard summaries and CSV export use real SQLite records; the
-existing demonstration FDR rows remain in the dashboard tables. The list
-refreshes on demand and every 30 seconds.
+Officer dashboard summaries, analytics charts, institution totals, renewals,
+and CSV export use the same SQLite FDR records. The seeded demonstration rows
+are part of the local demo database and are clearly identified by their DEMO
+prefix. The Dashboard and Reports & Analytics charts use Recharts tooltips and
+derive status counts, bank distribution, and the upcoming six-calendar-month
+expiry forecast from the loaded FDR records. The list refreshes on demand and
+every 30 seconds.
 
 ### Automated verification and OCR status
 
@@ -487,10 +498,20 @@ deterministic and awards points only when a check passes:
 - Duplicate FDR Check: 0 (a duplicate still flags the submission)
 
 Each check is returned with `PASS`, `FAILED`, or `PENDING` and an explanation.
-OCR failure returns `FAILED`; a mismatch, duplicate, or unmatched bank record
-returns `FLAGGED`; otherwise the result remains `PENDING` until all checks pass.
-Officer approval also requires all checks and bank verification to pass.
-Officer decisions require a reason and are recorded in `audit_logs`.
+OCR failure returns `FAILED`; an OCR mismatch, duplicate, or mock-bank
+mismatch returns `FLAGGED`. A missing configured mock-bank record is `PENDING`,
+not a claim that a real bank rejected the FDR. Other incomplete checks remain
+`PENDING` until all checks pass. Officer approval also requires all checks and
+bank verification to pass. Officer decisions require a reason and are recorded
+in `audit_logs`.
+
+After submission, the institution sees an **Automated Verification Result**
+with the backend result and score, OCR confidence/provider, a clearly labelled
+mock-bank status, field-by-field OCR comparisons, and expandable OCR text. The
+same saved result can be opened from **My FDRs**. OCR provider, extracted
+fields, confidence details, and raw OCR text are retained in the existing
+`verifications.extracted_data` JSON column; bank results and comparisons use
+the existing verification columns.
 
 ### Bank verification prototype
 
@@ -510,6 +531,41 @@ details or no matching record does not verify the FDR. This is a mock lookup,
 not a real bank connection or confirmation. Keep test records in the backend
 environment, not in source control. The older default provider remains
 `PENDING` when called without configured records.
+
+#### Synthetic end-to-end OCR demo
+
+`backend/test/fixtures/sample-fdr-demo.pdf` is a clearly marked synthetic test
+fixture, not a bank-issued FDR. Its values are:
+
+| Field | Value |
+|---|---|
+| FDR number | `DEMO-FDR-2026-73942` |
+| Bank | `AICTE Demo Bank (Test Only)` |
+| Amount | `1000000` |
+| Issue date | `26/10/2026` |
+| Maturity date | `26/10/2027` |
+| Status | `ACTIVE` |
+
+`backend/test/fixtures/sample-fdr-demo-2.pdf` is a second synthetic test
+fixture, also not a bank-issued FDR:
+
+| Field | Value |
+|---|---|
+| FDR number | `DEMO-FDR-2026-84216` |
+| Bank | `AICTE Demo Bank (Test Only)` |
+| Amount | `875000` |
+| Issue date | `27/10/2026` |
+| Maturity date | `27/10/2027` |
+| Status | `ACTIVE` |
+
+To run the demo, use **New Institution** as the application type, enter the
+values above exactly, and upload the corresponding fixture. Matching records
+for both fixtures are included in the example environment and the local demo
+environment. The FDR number must not already exist in the database. Restart
+the backend after changing `MOCK_BANK_RECORDS_JSON`. When OCR, duplicate,
+institution, and configured mock-bank checks all pass, the submission is
+automatically marked `VERIFIED`. This is a simulated test only; it is not a
+real bank confirmation or regulatory approval.
 
 Run the backend service tests with `npm test` from `backend`.
 
@@ -695,13 +751,13 @@ POST  /api/officer/fdrs/:id/bank-verify
 All routes require an authenticated `OFFICER` token unless otherwise noted.
 The verification queue includes pending, flagged, or failed records, records
 with failed/mismatched checks, failed bank results, and scores below 70/100.
-Dashboard statistic cards use SQLite values when database FDRs exist; when
-there are none, they show an explicitly labelled demo fallback. Demo FDR rows
-remain in the dashboard list and are not counted as live database records.
-The workspace keeps its demo dashboard data alongside database records; the
-dashboard's illustrative chart remains hardcoded. The OCR adapter remains
-unconfigured by default, and the default bank provider remains a clearly
-labelled mock provider.
+Dashboard statistics and Reports & Analytics derive from the officer FDR API;
+institution and renewal views use the related database records. The reports
+expiry forecast buckets maturity dates into the six calendar months following
+the current month, and its monthly totals and values are calculated from those
+same FDR rows. Maturity risk uses the shared FDR priority calculation. The OCR
+adapter remains unconfigured by default, and the default bank provider remains
+a clearly labelled mock provider.
 
 ---
 

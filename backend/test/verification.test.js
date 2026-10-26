@@ -5,6 +5,7 @@ const {
   createConfiguredMockBankProvider,
   verifyBankFdr
 } = require("../src/services/bankVerificationService");
+const { serializeOcrExtraction } = require("../src/services/ocrService");
 const { verifyFdr } = require("../src/services/verificationService");
 
 const submitted = {
@@ -32,6 +33,22 @@ const bankRecord = {
   maturityDate: "25/10/2027",
   fdrStatus: "ACTIVE"
 };
+
+test("serialized OCR result preserves provider, confidence details, and OCR text", () => {
+  const stored = JSON.parse(serializeOcrExtraction({
+    provider: "TESSERACT.JS",
+    status: "SUCCESS",
+    extracted,
+    confidenceByField: { fdrNumber: 95 },
+    rawText: "FDR Number: SBI/FDR/98231"
+  }));
+
+  assert.equal(stored.ocrProvider, "TESSERACT.JS");
+  assert.equal(stored.ocrStatus, "SUCCESS");
+  assert.deepEqual(stored.confidenceByField, { fdrNumber: 95 });
+  assert.equal(stored.rawText, "FDR Number: SBI/FDR/98231");
+  assert.equal(stored.fdrNumber, submitted.fdrNumber);
+});
 
 async function verifySubmission({
   submittedValues = submitted,
@@ -95,14 +112,14 @@ test("OCR amount mismatch is exposed in field comparisons and flags the FDR", as
   );
 });
 
-test("missing mock-bank record is not treated as verified", async () => {
+test("missing mock-bank record remains pending, not a real-bank failure", async () => {
   const result = await verifySubmission({ records: [] });
   const bankCheck = result.checks.find(
     (check) => check.key === "bank_verification"
   );
 
-  assert.equal(result.result, "FLAGGED");
-  assert.equal(bankCheck.status, "FAILED");
+  assert.equal(result.result, "PENDING");
+  assert.equal(bankCheck.status, "PENDING");
   assert.match(bankCheck.explanation, /no matching/i);
 });
 

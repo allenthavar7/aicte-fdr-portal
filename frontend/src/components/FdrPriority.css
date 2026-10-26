@@ -1,0 +1,147 @@
+.fdr-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.fdr-priority-badge strong {
+  font-weight: 700;
+}
+
+.fdr-priority-badge small {
+  flex-basis: 100%;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: normal;
+}
+
+.fdr-priority-critical {
+  background: #fff0f0;
+  color: #a51e2d;
+}
+
+.fdr-priority-high {
+  background: #fff2e8;
+  color: #9a3e00;
+}
+
+.fdr-priority-medium {
+  background: #fff9df;
+  color: #795b00;
+}
+
+.fdr-priority-low {
+  background: #eaf7ef;
+  color: #17663c;
+}
+
+.fdr-priority-summary {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid #dfe6ee;
+  border-left: 4px solid #7b8da3;
+  border-radius: 8px;
+  background: #fff;
+  color: #10233f;
+}
+
+.fdr-priority-summary:has(.fdr-priority-critical) {
+  border-left-color: #c52c3b;
+}
+
+.fdr-priority-summary:has(.fdr-priority-high) {
+  border-left-color: #d76518;
+}
+
+.fdr-priority-summary:has(.fdr-priority-medium) {
+  border-left-color: #c59b14;
+}
+
+.fdr-priority-summary:has(.fdr-priority-low) {
+  border-left-color: #23804d;
+}
+
+.fdr-priority-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fdr-priority-eyebrow {
+  color: #60738e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fdr-priority-summary h3 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  text-transform: uppercase;
+}
+
+.fdr-priority-total {
+  color: #10233f;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.fdr-priority-summary h4 {
+  margin: 16px 0 8px;
+  font-size: 12px;
+}
+
+.fdr-priority-summary ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fdr-priority-summary li,
+.fdr-priority-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.fdr-priority-summary li strong {
+  color: #a3440d;
+  white-space: nowrap;
+}
+
+.fdr-priority-summary p {
+  margin: 0;
+  color: #536981;
+  font-size: 12px;
+}
+
+.fdr-priority-total-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e7edf3;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .fdr-priority-summary {
+    padding: 12px;
+  }
+
+  .fdr-priority-total {
+    font-size: 17px;
+  }
+}
