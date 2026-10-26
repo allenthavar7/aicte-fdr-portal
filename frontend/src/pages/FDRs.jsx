@@ -1,19 +1,24 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getInstitutionFdrs } from "../api/api";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  getInstitutionFdrDocument,
+  getInstitutionFdrs
+} from "../api/api";
 
 function FDRs() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [fdrs, setFdrs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchText, setSearchText] = useState(
+    () => searchParams.get("search") || ""
+  );
+  const [openingDocumentId, setOpeningDocumentId] = useState(null);
+  const [documentError, setDocumentError] = useState("");
 
-  useEffect(() => {
-    loadFdrs();
-  }, []);
-
-  async function loadFdrs() {
+  const loadFdrs = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -26,7 +31,6 @@ function FDRs() {
       }
 
       const data = await getInstitutionFdrs(token);
-
       setFdrs(data.fdrs || []);
     } catch (err) {
       console.error("Failed to load FDRs:", err);
@@ -34,7 +38,11 @@ function FDRs() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [navigate]);
+
+  useEffect(() => {
+    Promise.resolve().then(loadFdrs);
+  }, [loadFdrs]);
 
   function formatAmount(amount) {
     return new Intl.NumberFormat("en-IN", {
@@ -60,10 +68,70 @@ function FDRs() {
     });
   }
 
+  function getMaturityStatus(maturityDate) {
+    const date = new Date(maturityDate);
+
+    if (!maturityDate || Number.isNaN(date.getTime())) {
+      return "Unknown";
+    }
+
+    const daysRemaining = Math.ceil(
+      (date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    if (daysRemaining < 0) return "Expired";
+    if (daysRemaining < 30) return "Critical";
+    if (daysRemaining <= 90) return "Expiring Soon";
+    return "Normal";
+  }
+
   function logout() {
     localStorage.removeItem("token");
     navigate("/");
   }
+
+  async function openDocument(fdr) {
+    const documentWindow = window.open("", "_blank");
+
+    if (!documentWindow) {
+      setDocumentError("Allow pop-ups to open the FDR document.");
+      return;
+    }
+
+    try {
+      setOpeningDocumentId(fdr.document_id);
+      setDocumentError("");
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        documentWindow.close();
+        navigate("/");
+        return;
+      }
+
+      const blob = await getInstitutionFdrDocument(
+        token,
+        fdr.id,
+        fdr.document_id
+      );
+      documentWindow.location.href = URL.createObjectURL(blob);
+    } catch (err) {
+      documentWindow.close();
+      console.error("Failed to open FDR document:", err);
+      setDocumentError(err.message || "Unable to open FDR document");
+    } finally {
+      setOpeningDocumentId(null);
+    }
+  }
+
+  const visibleFdrs = fdrs.filter((fdr) => {
+    const query = searchText.trim().toLocaleLowerCase("en-IN");
+
+    return [fdr.fdr_number, fdr.bank_name, fdr.application_type].some(
+      (value) => String(value || "").toLocaleLowerCase("en-IN").includes(query)
+    );
+  });
 
   return (
     <div className="dashboard-layout">
@@ -234,6 +302,12 @@ function FDRs() {
 
           )}
 
+          {documentError && (
+            <div role="alert" style={{ color: "#991b1b", marginBottom: "16px" }}>
+              {documentError}
+            </div>
+          )}
+
 
           {/* LOADING */}
 
@@ -308,19 +382,28 @@ function FDRs() {
                   </h3>
 
                   <p>
-                    {fdrs.length} FDR
-                    {fdrs.length !== 1 ? "s" : ""} found
+                    {visibleFdrs.length} of {fdrs.length} FDR
+                    {fdrs.length !== 1 ? "s" : ""} shown
                   </p>
 
                 </div>
 
 
-                <button
-                  className="text-button"
-                  onClick={loadFdrs}
-                >
-                  Refresh
-                </button>
+                <div>
+                  <input
+                    type="search"
+                    aria-label="Search your FDRs"
+                    placeholder="Search FDR number, bank, application..."
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                  />
+                  <button
+                    className="text-button"
+                    onClick={loadFdrs}
+                  >
+                    Refresh
+                  </button>
+                </div>
 
               </div>
 
@@ -354,11 +437,27 @@ function FDRs() {
                       </th>
 
                       <th>
+                        Maturity Status
+                      </th>
+
+                      <th>
                         Verification
                       </th>
 
                       <th>
+                        Automated Result
+                      </th>
+
+                      <th>
+                        Score
+                      </th>
+
+                      <th>
                         Status
+                      </th>
+
+                      <th>
+                        Document
                       </th>
 
                     </tr>
@@ -368,7 +467,7 @@ function FDRs() {
 
                   <tbody>
 
-                    {fdrs.map((fdr) => (
+                    {visibleFdrs.map((fdr) => (
 
                       <tr key={fdr.id}>
 
@@ -398,23 +497,43 @@ function FDRs() {
                           {formatDate(fdr.maturity_date)}
                         </td>
 
+                        <td>
+                          {getMaturityStatus(fdr.maturity_date)}
+                        </td>
+
 
                         <td>
-
                           <span
                             className={`badge ${
                               fdr.verification_status === "VERIFIED"
                                 ? "badge-success"
-                                : fdr.verification_status === "REJECTED"
+                                : ["REJECTED", "FAILED"].includes(
+                                    fdr.verification_status
+                                  )
                                 ? "badge-error"
                                 : "badge-pending"
                             }`}
                           >
                             {fdr.verification_status}
                           </span>
-
                         </td>
 
+                        <td>
+                          <div>
+                            {fdr.verification_result || fdr.verification_status}
+                          </div>
+                          {fdr.review_reason && (
+                            <small style={{ color: "#8a4b08" }}>
+                              {fdr.review_reason}
+                            </small>
+                          )}
+                        </td>
+
+                        <td>
+                          {Number.isFinite(fdr.verification_score)
+                            ? `${fdr.verification_score}%`
+                            : "—"}
+                        </td>
 
                         <td>
 
@@ -430,9 +549,32 @@ function FDRs() {
 
                         </td>
 
+                        <td>
+                          {fdr.document_id ? (
+                            <button
+                              className="text-button"
+                              onClick={() => openDocument(fdr)}
+                              disabled={openingDocumentId === fdr.document_id}
+                            >
+                              {openingDocumentId === fdr.document_id
+                                ? "Opening..."
+                                : "View"}
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+
                       </tr>
 
                     ))}
+                    {visibleFdrs.length === 0 && (
+                      <tr>
+                        <td colSpan="11" style={{ textAlign: "center" }}>
+                          No FDRs match your search.
+                        </td>
+                      </tr>
+                    )}
 
                   </tbody>
 

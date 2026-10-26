@@ -29,6 +29,7 @@ function Dashboard() {
         const data = await getInstitutionFdrs(token);
 
         setFdrs(data.fdrs || []);
+        setError("");
       } catch (err) {
         console.error("Failed to load FDRs:", err);
         setError(err.message || "Failed to load FDR data");

@@ -15,6 +15,8 @@ function SubmitFDR() {
     currentIntake: "",
     proposedIntake: "",
     academicYear: "",
+    previousFdrNumber: "",
+    applicationDescription: "",
 
     fdrNumber: "",
     bankName: "",
@@ -38,11 +40,6 @@ function SubmitFDR() {
     }));
   }
 
-  function handlePurposeChange(event) {
-    setPurpose(event.target.value);
-    setError("");
-  }
-
   function handleFileChange(event) {
     const selectedFile = event.target.files[0];
 
@@ -51,8 +48,15 @@ function SubmitFDR() {
       return;
     }
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Please select a PDF file.");
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+    if (
+      !["pdf", "png", "jpg", "jpeg"].includes(extension) ||
+      (selectedFile.type &&
+        !["application/pdf", "image/png", "image/jpeg"].includes(
+          selectedFile.type
+        ))
+    ) {
+      setError("Please select a PDF, PNG, JPG or JPEG file.");
       event.target.value = "";
       setFile(null);
       return;
@@ -94,14 +98,17 @@ function SubmitFDR() {
     }
 
     if (purpose === "RENEWAL") {
-      if (!formData.fdrNumber) {
+      if (!formData.previousFdrNumber) {
         return "Please enter the existing FDR number.";
       }
     }
 
     if (purpose === "REPLACEMENT") {
-      if (!formData.fdrNumber) {
+      if (!formData.previousFdrNumber) {
         return "Please enter the FDR number being replaced.";
+      }
+      if (!formData.applicationDescription.trim()) {
+        return "Please describe why the FDR is being replaced.";
       }
     }
 
@@ -109,11 +116,17 @@ function SubmitFDR() {
       if (!formData.academicYear) {
         return "Please enter the academic year.";
       }
+      if (!formData.applicationDescription.trim()) {
+        return "Please describe the requested modification.";
+      }
     }
 
     if (purpose === "OTHER") {
       if (!formData.academicYear) {
         return "Please enter the academic year.";
+      }
+      if (!formData.applicationDescription.trim()) {
+        return "Please describe the regulatory requirement.";
       }
     }
 
@@ -146,7 +159,7 @@ function SubmitFDR() {
     }
 
     if (!file) {
-      setError("Please upload the FDR PDF document.");
+      setError("Please upload the FDR document.");
       return;
     }
 
@@ -203,6 +216,8 @@ function SubmitFDR() {
       data.append("currentIntake", formData.currentIntake);
       data.append("proposedIntake", formData.proposedIntake);
       data.append("academicYear", formData.academicYear);
+      data.append("previousFdrNumber", formData.previousFdrNumber);
+      data.append("applicationDescription", formData.applicationDescription);
 
       const response = await fetch(
         "http://localhost:5000/api/fdr",
@@ -223,11 +238,10 @@ function SubmitFDR() {
         );
       }
 
-      setSuccess("FDR submitted successfully.");
-
-      setTimeout(() => {
-        navigate("/fdrs");
-      }, 1200);
+      const verification = result.verification;
+      setSuccess(
+        `FDR submitted. Automated result: ${verification?.status || result.fdr.verificationStatus} (${verification?.score ?? result.fdr.verificationScore}/100). OCR: ${verification?.ocr?.message || "result unavailable"} Bank: ${verification?.bank?.status || "PENDING"} — ${verification?.bank?.message || "Bank result unavailable."}`
+      );
 
     } catch (err) {
       console.error("Submit FDR error:", err);
@@ -902,12 +916,12 @@ function SubmitFDR() {
                     <div>
 
                       <label style={labelStyle}>
-                        Existing FDR Number *
+                        Previous FDR Number *
                       </label>
 
                       <input
-                        name="fdrNumber"
-                        value={formData.fdrNumber}
+                        name="previousFdrNumber"
+                        value={formData.previousFdrNumber}
                         onChange={handleChange}
                         placeholder="e.g. FDR/VJTI/2026/001"
                         required
@@ -921,8 +935,8 @@ function SubmitFDR() {
                           marginTop: "8px"
                         }}
                       >
-                        The existing FDR will be linked to
-                        the renewal submission.
+                        Enter the FDR being renewed. Enter the new FDR number
+                        separately in FDR Details below.
                       </p>
 
                     </div>
@@ -941,14 +955,24 @@ function SubmitFDR() {
                       </label>
 
                       <input
-                        name="fdrNumber"
-                        value={formData.fdrNumber}
+                        name="previousFdrNumber"
+                        value={formData.previousFdrNumber}
                         onChange={handleChange}
                         placeholder="e.g. FDR/VJTI/2026/001"
                         required
                         style={inputStyle}
                       />
 
+                      <label style={{ ...labelStyle, display: "block", marginTop: 16 }}>
+                        Reason for Replacement *
+                      </label>
+                      <textarea
+                        name="applicationDescription"
+                        value={formData.applicationDescription}
+                        onChange={handleChange}
+                        required
+                        style={{ ...inputStyle, minHeight: 90 }}
+                      />
                     </div>
 
                   )}
@@ -973,6 +997,16 @@ function SubmitFDR() {
                         style={inputStyle}
                       />
 
+                      <label style={{ ...labelStyle, display: "block", marginTop: 16 }}>
+                        Modification Details *
+                      </label>
+                      <textarea
+                        name="applicationDescription"
+                        value={formData.applicationDescription}
+                        onChange={handleChange}
+                        required
+                        style={{ ...inputStyle, minHeight: 90 }}
+                      />
                     </div>
 
                   )}
@@ -997,6 +1031,16 @@ function SubmitFDR() {
                         style={inputStyle}
                       />
 
+                      <label style={{ ...labelStyle, display: "block", marginTop: 16 }}>
+                        Requirement Description *
+                      </label>
+                      <textarea
+                        name="applicationDescription"
+                        value={formData.applicationDescription}
+                        onChange={handleChange}
+                        required
+                        style={{ ...inputStyle, minHeight: 90 }}
+                      />
                     </div>
 
                   )}
@@ -1187,13 +1231,13 @@ function SubmitFDR() {
                     <div>
 
                       <label style={labelStyle}>
-                        FDR Document (PDF) *
+                        FDR Document (PDF, PNG or JPG) *
                       </label>
 
                       <input
                         id="fdrDocument"
                         type="file"
-                        accept=".pdf,application/pdf"
+                        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
                         onChange={handleFileChange}
                         required
                         style={{

@@ -1,5 +1,8 @@
 const db = require("./database");
 
+// Enable foreign-key support
+db.pragma("foreign_keys = ON");
+
 db.exec(`
   /* =========================================================
      USERS
@@ -52,8 +55,6 @@ db.exec(`
 
   /* =========================================================
      APPLICATIONS
-     
-     Stores WHY an institution is submitting an FDR.
      ========================================================= */
 
   CREATE TABLE IF NOT EXISTS applications (
@@ -84,6 +85,8 @@ db.exec(`
     proposed_intake INTEGER,
 
     academic_year TEXT,
+
+    description TEXT,
 
     status TEXT NOT NULL DEFAULT 'PENDING',
 
@@ -117,7 +120,6 @@ db.exec(`
 
     institution_id INTEGER NOT NULL,
 
-    /* Links this FDR to the application that created it */
     application_id INTEGER,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -275,24 +277,23 @@ db.exec(`
 
 
 /* =========================================================
-   DATABASE MIGRATION
+   MIGRATION
    =========================================================
 
-   If the database was created before application_id existed,
-   add the column to the existing fdrs table.
+   Existing databases may have been created before
+   application_id was added to the fdrs table.
 
-   SQLite's CREATE TABLE IF NOT EXISTS does NOT modify
-   an existing table, so this migration is necessary.
+   CREATE TABLE IF NOT EXISTS does not modify an
+   existing table, so check first.
    ========================================================= */
 
 const fdrColumns = db
-  .prepare(`PRAGMA table_info(fdrs)`)
+  .prepare("PRAGMA table_info(fdrs)")
   .all();
 
 const hasApplicationId = fdrColumns.some(
   (column) => column.name === "application_id"
 );
-
 
 if (!hasApplicationId) {
 
@@ -302,9 +303,33 @@ if (!hasApplicationId) {
   `);
 
   console.log(
-    "Database migration: application_id added to fdrs."
+    "Migration completed: application_id added to fdrs."
   );
 }
+
+
+/* =========================================================
+   INDEXES
+   ========================================================= */
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_fdrs_institution
+  ON fdrs(institution_id);
+
+  CREATE INDEX IF NOT EXISTS idx_fdrs_application
+  ON fdrs(application_id);
+
+  CREATE INDEX IF NOT EXISTS idx_fdrs_verification
+  ON fdrs(verification_status);
+
+  CREATE INDEX IF NOT EXISTS idx_applications_institution
+  ON applications(institution_id);
+
+  CREATE INDEX IF NOT EXISTS idx_documents_fdr
+  ON documents(fdr_id);
+`);
+
+require("./migrations")(db);
 
 
 /* =========================================================

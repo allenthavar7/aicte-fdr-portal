@@ -6,6 +6,9 @@ import FDRs from "./pages/FDRs";
 import SubmitFDR from "./pages/SubmitFDR";
 import Documents from "./pages/Documents";
 import OfficerDashboard from "./pages/OfficerDashboard";
+import OfficerWorkspace from "./pages/OfficerWorkspace";
+import Renewals from "./pages/Renewals";
+import Notifications from "./pages/Notifications";
 
 function App() {
   return (
@@ -27,6 +30,10 @@ function App() {
           element={<OfficerDashboard />}
         />
         <Route
+          path="/officer/:section"
+          element={<OfficerWorkspace />}
+        />
+        <Route
           path="/fdrs"
           element={<FDRs />}
         />
@@ -34,6 +41,14 @@ function App() {
         <Route
           path="/submit-fdr"
           element={<SubmitFDR />}
+        />
+        <Route
+          path="/renewals"
+          element={<Renewals />}
+        />
+        <Route
+          path="/notifications"
+          element={<Notifications />}
         />
 
         <Route
