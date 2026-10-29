@@ -422,4 +422,127 @@ router.patch("/notifications/:id/read", authenticateToken, requireRole("INSTITUT
   }
 });
 
+
+router.get("/release-requests", authenticateToken, requireRole("INSTITUTION"), (req, res) => {
+  try {
+    const institution = getInstitutionForUser(req.user.userId);
+    if (!institution) {
+      return res.status(404).json({ message: "Institution profile not found" });
+    }
+    const requests = db.prepare(`
+      SELECT r.id, r.fdr_id, r.reason, r.status, r.created_at, r.reviewed_at,
+             f.fdr_number, f.bank_name, f.amount, f.maturity_date, f.status AS fdr_status,
+             u.name AS reviewer_name
+      FROM release_requests r
+      JOIN fdrs f ON f.id = r.fdr_id
+      LEFT JOIN users u ON u.id = r.reviewed_by
+      WHERE f.institution_id = ?
+      ORDER BY r.created_at DESC, r.id DESC
+    `).all(institution.id);
+    return res.json({ count: requests.length, requests });
+  } catch (error) {
+    console.error("Institution release requests fetch error:", error);
+    return res.status(500).json({ message: "Unable to fetch release requests" });
+  }
+});
+
+router.post("/release-requests", authenticateToken, requireRole("INSTITUTION"), (req, res) => {
+  const fdrId = Number(req.body.fdrId);
+  const reason = String(req.body.reason || "").trim();
+
+  if (!Number.isInteger(fdrId) || fdrId <= 0 || !reason) {
+    return res.status(400).json({ message: "Select an FDR and provide a release reason." });
+  }
+
+  try {
+    const institution = getInstitutionForUser(req.user.userId);
+    if (!institution) {
+      return res.status(404).json({ message: "Institution profile not found" });
+    }
+
+    const fdr = db.prepare(`
+      SELECT id, fdr_number, bank_name, amount, status
+      FROM fdrs
+      WHERE id = ? AND institution_id = ?
+    `).get(fdrId, institution.id);
+
+    if (!fdr) {
+      return res.status(404).json({ message: "FDR not found for this institution" });
+    }
+
+    if (fdr.status === "RELEASED") {
+      return res.status(409).json({ message: "This FDR has already been released." });
+    }
+
+    if (fdr.status === "RELEASE_REQUESTED") {
+      return res.status(409).json({ message: "A release request is already pending for this FDR." });
+    }
+
+    const existingPending = db.prepare(`
+      SELECT id FROM release_requests
+      WHERE fdr_id = ? AND status = 'PENDING'
+    `).get(fdrId);
+
+    if (existingPending) {
+      return res.status(409).json({ message: "A pending release request already exists for this FDR." });
+    }
+
+    const transaction = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO release_requests (fdr_id, reason, status)
+        VALUES (?, ?, 'PENDING')
+      `).run(fdrId, reason);
+
+      const requestId = result.lastInsertRowid;
+
+      db.prepare(`
+        UPDATE fdrs SET status = 'RELEASE_REQUESTED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(fdrId);
+
+      insertAudit(
+        req.user.userId,
+        "RELEASE_REQUEST_SUBMITTED",
+        "RELEASE_REQUEST",
+        requestId,
+        JSON.stringify({ fdrId, fdrNumber: fdr.fdr_number, reason })
+      );
+
+      db.prepare(`
+        INSERT INTO notifications (user_id, message, type, fdr_id)
+        VALUES (?, ?, 'RELEASE_REQUEST_SUBMITTED', ?)
+      `).run(
+        req.user.userId,
+        `Release request for FDR ${fdr.fdr_number} has been submitted for AICTE officer review.`,
+        fdrId
+      );
+
+      const officers = db.prepare(`SELECT id FROM users WHERE role = 'OFFICER'`).all();
+      const notifyOfficer = db.prepare(`
+        INSERT INTO notifications (user_id, message, type, fdr_id)
+        VALUES (?, ?, 'RELEASE_REQUEST_SUBMITTED', ?)
+      `);
+      for (const officer of officers) {
+        notifyOfficer.run(
+          officer.id,
+          `New release request submitted for FDR ${fdr.fdr_number} by ${institution.name}.`,
+          fdrId
+        );
+      }
+
+      return requestId;
+    });
+
+    const requestId = transaction();
+    return res.status(201).json({
+      success: true,
+      message: "Release request submitted successfully",
+      requestId
+    });
+  } catch (error) {
+    console.error("Institution release request error:", error);
+    return res.status(500).json({ message: "Unable to submit release request" });
+  }
+});
+
 module.exports = router;

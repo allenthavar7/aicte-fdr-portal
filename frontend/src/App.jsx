@@ -9,6 +9,7 @@ import OfficerDashboard from "./pages/OfficerDashboard";
 import OfficerWorkspace from "./pages/OfficerWorkspace";
 import Renewals from "./pages/Renewals";
 import Notifications from "./pages/Notifications";
+import HelpSupport from "./pages/HelpSupport";
 
 function App() {
   return (
@@ -34,6 +35,10 @@ function App() {
           element={<OfficerWorkspace />}
         />
         <Route
+          path="/admin"
+          element={<OfficerDashboard />}
+        />
+        <Route
           path="/fdrs"
           element={<FDRs />}
         />
@@ -54,6 +59,11 @@ function App() {
         <Route
           path="/documents"
           element={<Documents />}
+        />
+
+        <Route
+          path="/help"
+          element={<HelpSupport />}
         />
 
       </Routes>

@@ -1,23 +1,20 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getInstitutionNotifications } from "../api/api";
 
 const institutionName = () => {
   try {
-    return JSON.parse(localStorage.getItem("user") || "{}").name ||
-      "Institution";
+    const raw = JSON.parse(localStorage.getItem("user") || "{}").name;
+    if (raw && /vjti/i.test(raw)) return "ABC";
+    return raw || "ABC";
   } catch {
-    return "Institution";
+    return "ABC";
   }
 };
 
 export default function InstitutionLayout({
   active,
-  children,
-  notificationRefreshKey = 0
+  children
 }) {
   const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
   const name = institutionName();
   const user = (() => {
     try {
@@ -26,22 +23,6 @@ export default function InstitutionLayout({
       return {};
     }
   })();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return undefined;
-    let mounted = true;
-    getInstitutionNotifications(token)
-      .then((result) => {
-        if (mounted) setUnreadCount(result.unreadCount || 0);
-      })
-      .catch((error) => {
-        console.error("Unable to load institution notification count:", error);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [notificationRefreshKey]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -54,7 +35,9 @@ export default function InstitutionLayout({
     ["My FDRs", "/fdrs", "▤", "fdrs"],
     ["Submit FDR", "/submit-fdr", "＋", "submit"],
     ["Renewals", "/renewals", "↻", "renewals"],
-    ["Notifications", "/notifications", "♢", "notifications"]
+    ["Documents", "/documents", "📄", "documents"],
+    ["Notifications", "/notifications", "♢", "notifications"],
+    ["Help & Support", "/help", "🛟", "help"]
   ];
 
   return (
@@ -74,9 +57,6 @@ export default function InstitutionLayout({
             >
               <span>{icon}</span>
               {label}
-              {key === "notifications" && unreadCount > 0 && (
-                <span className="institution-unread-count">{unreadCount}</span>
-              )}
             </button>
           ))}
         </nav>
@@ -93,7 +73,15 @@ export default function InstitutionLayout({
       <main className="dashboard-main">
         <header className="topbar">
           <div>
-            <h1>{active === "renewals" ? "Renewals" : "Notifications"}</h1>
+            <h1>
+              {active === "renewals"
+                ? "Renewals"
+                : active === "help"
+                ? "Help & Support"
+                : active === "notifications"
+                ? "Notifications"
+                : "Institution Portal"}
+            </h1>
             <p>Security Deposit &amp; Fixed Deposit Receipt Management</p>
           </div>
           <div className="user-info">
@@ -104,7 +92,6 @@ export default function InstitutionLayout({
         {children}
       </main>
       <style>{`
-        .institution-unread-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:12px;background:#e5484d;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
         .institution-page-content{padding:28px 35px}
         .institution-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:14px;margin-bottom:22px}
         .institution-summary-card{background:#fff;border:1px solid #eaecf0;border-radius:10px;padding:18px}

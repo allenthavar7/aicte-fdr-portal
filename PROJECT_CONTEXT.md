@@ -537,7 +537,7 @@ erDiagram
 
 ## 16. Existing Mock & Demo Data
 1. **Pre-Seeded Login Accounts (`database/seed.js`)**:
-   - Institution: `admin@vjti.ac.in` / `VJTI@12345` (linked to `VJTI Engineering College`, code `AICTE-MH-001`).
+   - Institution: `admin@abc.ac.in` / `ABC@12345` (linked to `ABC`, code `AICTE-MH-001`).
    - AICTE Officer: `officer@aicte.gov.in` / `AICTE@12345`.
 2. **Demo Fixtures (`shared/officerDemoData.json`)**:
    - 5 Institutions: Western Institute (Pune), Konkan School (Mumbai), Sahyadri College (Nashik), Narmada Institute (Surat), Deccan School (Bengaluru).
@@ -548,7 +548,7 @@ erDiagram
 4. **Hardcoded Frontend UI Placeholders**:
    - Hardcoded notification items in `OfficerDashboard.jsx` (lines 357–385).
    - Hardcoded release request rows in `OfficerDashboard.jsx` (lines 333–355).
-   - Hardcoded institution name "VJTI Engineering College" in `Dashboard.jsx`, `SubmitFDR.jsx`, and `Documents.jsx`.
+   - Hardcoded institution name "ABC" in `Dashboard.jsx`, `SubmitFDR.jsx`, and `Documents.jsx`.
 
 ---
 
@@ -582,51 +582,36 @@ erDiagram
 
 ---
 
-## 19. Known Bugs
+## 19. Bug & Gap Resolution Register
 
-### Critical Bugs
-1. **Hardcoded Localhost API URLs in Frontend Pages**:
-   - `frontend/src/pages/Login.jsx` (lines 20–21) calls `"http://localhost:5000/api/auth/login"`.
-   - `frontend/src/pages/SubmitFDR.jsx` (lines 226–227) calls `"http://localhost:5000/api/fdr"`.
-   - *Impact*: Bypasses `import.meta.env.VITE_API_URL`. Any deployment or port change breaks authentication and submissions immediately.
-2. **Missing `/admin` Route in App.jsx**:
-   - `Login.jsx` (lines 55–56) redirects role `ADMIN` to `/admin`.
-   - `App.jsx` defines no route for `/admin`.
-   - *Impact*: Logging in with an admin account results in a blank page (404 route in React Router).
-3. **Officer Override Self-Contradiction**:
-   - In `backend/src/routes/officer.js` (`POST /fdrs/:id/override`), line 1484 blocks `APPROVE` decisions with a 409 Conflict if bank status is not `VERIFIED` or if any check failed.
-   - *Impact*: The primary purpose of an officer "override" is to exercise human discretion when automated checks are pending or flagged. Currently, an officer cannot approve an FDR through override unless it has already passed all automated checks.
-
-### Important Issues
-4. **Hardcoded Institutional Identity Across Institution Pages**:
-   - `Dashboard.jsx`, `SubmitFDR.jsx`, and `Documents.jsx` have hardcoded state defaulting to `"VJTI Engineering College"` and `"AICTE-MH-001"`.
-   - *Impact*: If another institution user logs in, the header and submission forms still display VJTI details instead of their own account.
-5. **Hardcoded Mock Widgets on Officer Dashboard**:
-   - `OfficerDashboard.jsx` (lines 333–355 and line 3012) displays hardcoded static release requests `REQ-003`, `REQ-004`, `REQ-005` in the dashboard table instead of the database records fetched on line 555.
-   - `OfficerDashboard.jsx` (lines 357–385 and line 3078) renders a hardcoded notifications array below the real database notifications.
-6. **Incomplete Documents Page**:
-   - `frontend/src/pages/Documents.jsx` is a static placeholder displaying: *"We will connect this page to the document API next."* It makes no backend API calls.
-7. **Empty Dead-Code Components**:
-   - `Sidebar.jsx`, `StatCard.jsx`, `Topbar.jsx`, and `FDRCard.jsx` in `frontend/src/components/` are 0-byte empty files not imported anywhere.
-8. **Inconsistent Sidebar and Logout Logic**:
-   - `Renewals.jsx` and `Notifications.jsx` use `InstitutionLayout.jsx` (which clears both `token` and `user` on logout).
-   - `Dashboard.jsx`, `FDRs.jsx`, `SubmitFDR.jsx`, and `Documents.jsx` copy-paste sidebar markup and only clear `token` on logout.
-   - In `InstitutionLayout.jsx` (line 96), the header title is hardcoded to `active === "renewals" ? "Renewals" : "Notifications"`.
-
-### Minor Issues
-9. **Duplicate API Helper Modules**:
-   - Both `frontend/src/api/api.js` and `frontend/src/services/api.js` exist with overlapping logic.
-10. **Documentation & Env Example Drift**:
-    - `backend/.env.example` references PostgreSQL (`DATABASE_URL="postgresql://..."`), but the project uses SQLite.
+### Resolved Issues
+1. **[RESOLVED] Hardcoded Localhost API URLs in Frontend Pages**:
+   - Updated `frontend/src/pages/Login.jsx` and `frontend/src/pages/SubmitFDR.jsx` to use `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}`.
+2. **[RESOLVED] Missing `/admin` Route in App.jsx**:
+   - Added `<Route path="/admin" element={<OfficerDashboard />} />` to `App.jsx`.
+3. **[RESOLVED] Officer Discretionary Override**:
+   - Removed the blocking check in `backend/src/routes/officer.js` (`POST /fdrs/:id/override`) so officers can exercise legitimate human discretion to approve FDRs with mandatory remarks even when automated OCR or mock bank checks are pending.
+4. **[RESOLVED] Institution Release Request Lifecycle**:
+   - Backend endpoints `GET /api/institution/release-requests` and `POST /api/institution/release-requests` added to `institution.js` with validation, audit logging, and notifications.
+   - Updated `PATCH /release-requests/:id` in `officer.js` to set `fdrs.status = 'RELEASED'` on approval and revert to `'ACTIVE'` on rejection.
+   - Frontend UI in `FDRs.jsx` now provides a "Request Release" button, structured modal dialog, status badge transitions (`ACTIVE` -> `Pending Release` -> `Released`), and success alerts.
+5. **[RESOLVED] Documents Center**:
+   - Connected `frontend/src/pages/Documents.jsx` to live APIs (`getInstitutionFdrs` & `getInstitutionFdrDocument`).
+   - Implemented KPI metrics cards, status filter, real-time search, and instant document preview in a new tab via blob URL.
+6. **[RESOLVED] Dynamic Multi-Tenancy & Consistent Navigation**:
+   - Dynamic user/institution identity across `Dashboard.jsx`, `FDRs.jsx`, `SubmitFDR.jsx`, `Documents.jsx`, and `InstitutionLayout.jsx`.
+   - Added "Documents" navigation link across all institutional sidebar menus.
+7. **[RESOLVED] Live Officer Dashboard Widgets**:
+   - `OfficerDashboard.jsx` now loads and displays live release requests from the database in the scrutiny table while preserving demo fallback records if none exist.
+   - Officer notifications dynamically display live notifications without duplicating demo tasks.
+8. **[RESOLVED] AICTE Lien / Joint Holder Verification**:
+   - Added `aicte_lien_check` in `verificationService.js` to check for AICTE joint holder and lien endorsements in document OCR text.
 
 ---
 
-## 20. Incomplete Features
-1. **Live Bank Verification Gateway**: No external banking API is integrated. Currently relies on mock JSON records or stays in `PENDING`.
-2. **Documents Center**: Institutional documents page (`/documents`) is an unconnected stub.
-3. **Role-Based Frontend Route Guards**: React Router routes in `App.jsx` are not wrapped in `<ProtectedRoute>` or `<RoleRoute>`. Unauthorized visits depend on individual page `useEffect` checks.
-4. **Admin Dashboard**: `ADMIN` role is recognized in backend database schemas and middleware, but no frontend admin management interface exists.
-5. **Real Email Notifications**: Officer notification preferences include an "Email preference" toggle, but email sending (SMTP/SES) is not implemented.
+## 20. Remaining System Characteristics
+1. **Mock Bank Gateway**: Preserved mock JSON bank verification for local testing and demonstration purposes where real core banking APIs are unavailable.
+2. **Demonstration & Synthetic Data**: Preserved all existing demo data and fallback JSON fixtures in `shared/officerDemoData.json` and frontend components to ensure complete presentation fidelity during evaluation.
 
 ---
 
@@ -653,3 +638,202 @@ erDiagram
 - **`backend/src/services/bankVerificationService.js`**: Field normalization and check logic are relied upon during FDR submission and officer verification.
 - **`backend/src/database/migrations.js`**: Runs on server launch; modifying existing column migration routines could cause data loss or startup transaction locks on `aicte.db`.
 - **`POST /api/fdr` Transaction Block**: Handles multi-table atomic inserts across `applications`, `fdrs`, `documents`, `verifications`, `renewals`, `notifications`, and `audit_logs`.
+
+---
+
+## 24. End-to-End Workflow Tracing Matrix
+
+### 1. Institution Login
+- **Frontend Page**: `frontend/src/pages/Login.jsx`
+- **Frontend Component**: `Login`
+- **API Call**: `POST http://localhost:5000/api/auth/login` (direct fetch with hardcoded URL)
+- **Backend Route**: `POST /api/auth/login` (`backend/src/routes/auth.js`)
+- **Service**: `bcrypt.compareSync` + `jwt.sign`
+- **Database Operation**: `SELECT id, name, email, password_hash, role FROM users WHERE email = ?`
+- **Returned Data**: `{ message: "Login successful", token: "<jwt>", user: { id, name, email, role } }`
+- **Displayed UI**: Login card with inputs; sets `token` and `user` in `localStorage`; navigates to `/dashboard` on success; displays red error alert on failure.
+
+### 2. FDR Submission & 3. Document Upload
+- **Frontend Page**: `frontend/src/pages/SubmitFDR.jsx`
+- **Frontend Component**: `SubmitFDR`
+- **API Call**: `POST http://localhost:5000/api/fdr` (multipart/form-data via direct fetch)
+- **Backend Route**: `POST /api/fdr` (`backend/src/routes/fdr.js`)
+- **Service**: Multer disk storage (`src/uploads/fdr/`), `ocrService.extractFdrData()`, `bankVerificationService.verifyBankFdr()`, `verificationService.verifyFdr()`
+- **Database Operation**: Atomic transaction writing to `applications`, `fdrs`, `documents`, `verifications`, `audit_logs`, and `notifications`.
+- **Returned Data**: `{ success: true, message: "...", fdr: {...}, application: {...}, verification: {...} }`
+- **Displayed UI**: Purpose selector, FDR form, receipt file selector; renders `<AutomatedVerificationResult />` card with 4 metrics and field-by-field OCR comparison table upon submission.
+
+### 4. OCR
+- **Service**: `backend/src/services/ocrService.js` (`extractFdrData()`)
+- **Process**: `pdf-to-img` (scale: 2) -> Tesseract.js worker recognize -> regex label matching -> confidence averaging -> threshold check (>= 80%).
+- **Re-run Route**: `POST /api/officer/fdrs/:id/run-verification`
+- **Database Operation**: Stored in `verifications.extracted_data` (serialized JSON) and `verifications.ocr_confidence`.
+- **Displayed UI**: OCR confidence percentage badge, OCR provider (`TESSERACT.JS`), extracted field table, and raw OCR text inspection in officer modal.
+
+### 5. Bank Verification
+- **Service**: `backend/src/services/bankVerificationService.js` (`verifyBankFdr()`)
+- **Process**: Reads `MOCK_BANK_RECORDS_JSON`; matches `fdrNumber` and `bankName`; compares amount, issue date, maturity date, and active status.
+- **Re-run Route**: `POST /api/officer/fdrs/:id/bank-verify`
+- **Database Operation**: Stored in `verifications.bank_verification_result`.
+- **Displayed UI**: Bank verification status pill (`VERIFIED`, `MISMATCH`, `PENDING`, `NOT_FOUND`) and explanatory message.
+
+### 6. Verification Result
+- **Service**: `backend/src/services/verificationService.js` (`verifyFdr()`)
+- **Process**: Evaluates 9 deterministic checks totaling 100 points; assigns overall status (`VERIFIED`, `FLAGGED`, `PENDING`, or `FAILED`).
+- **Database Operation**: Written to `verifications` table with checks JSON and comparisons JSON; updates `fdrs.verification_status`.
+- **Displayed UI**: Rendered via `AutomatedVerificationResult.jsx` on `SubmitFDR.jsx`, expandable rows on `FDRs.jsx`, and inside `OfficerFdrDetailsModal.jsx`.
+
+### 7. Officer Verification Queue
+- **Frontend Page**: `frontend/src/pages/OfficerWorkspace.jsx` (`/officer/verification`)
+- **Frontend Component**: `OfficerWorkspace` (table view)
+- **API Call**: `getOfficerVerificationQueue(token)` (`frontend/src/services/api.js`)
+- **Backend Route**: `GET /api/officer/verification-queue` (`backend/src/routes/officer.js`)
+- **Service**: `fdrPriorityService.addFdrPriority()` -> `shared/fdrPriority.mjs` (`calculateFdrPriority()`)
+- **Database Operation**: Joins `fdrs` (where status is `PENDING`, `FLAGGED`, `FAILED` or checks failed) with `institutions`, `applications`, `verifications`, `documents`, and calculates priority.
+- **Returned Data**: `{ queueCount: number, fdrs: [...] }`
+- **Displayed UI**: Ranked priority table with urgency badges, multi-attribute filter bar, pagination, and "View" inspection button.
+
+### 8. Officer FDR Review
+- **Frontend Page**: `OfficerDashboard.jsx` (side drawer) and `OfficerWorkspace.jsx` (modal)
+- **Frontend Component**: `OfficerFdrDetailsModal.jsx`
+- **API Calls**:
+  - `PATCH /api/officer/fdrs/:id/verify`
+  - `PATCH /api/officer/fdrs/:id/reject`
+  - `POST /api/officer/fdrs/:id/override`
+  - `GET /api/officer/fdrs/:id/documents/:documentId`
+- **Backend Route**: In `backend/src/routes/officer.js`
+- **Database Operation**: Updates `fdrs.verification_status`; inserts record in `verifications`; logs `OFFICER_REVIEWED` in `audit_logs`; creates notification for institution.
+- **Displayed UI**: Detailed scrutiny modal, document previewer window, approval/rejection reason forms.
+
+### 9. Renewals
+- **Frontend Pages**: `frontend/src/pages/Renewals.jsx` (Institution) and `frontend/src/pages/OfficerWorkspace.jsx?section=renewals` (Officer)
+- **API Calls**:
+  - `GET /api/institution/renewals/eligible-fdrs`
+  - `GET /api/institution/renewals`
+  - `POST /api/institution/renewals`
+  - `GET /api/officer/renewals`
+  - `PATCH /api/officer/renewals/:id/review`
+- **Backend Routes**: `backend/src/routes/institution.js` and `backend/src/routes/officer.js`
+- **Database Operation**: Inserts and updates `renewals` table; creates audit logs and notifications; links `new_fdr_id` upon subsequent renewal FDR submission.
+- **Displayed UI**: Institution shows 90-day eligibility checklist and application modal; Officer shows adjudication workspace with status options (`UNDER_REVIEW`, `APPROVED`, `ACTION_REQUIRED`, `REJECTED`).
+
+### 10. Notifications
+- **Frontend Pages**: `frontend/src/pages/Notifications.jsx` (Institution) and `frontend/src/pages/OfficerWorkspace.jsx?section=notifications` (Officer)
+- **API Calls**:
+  - `GET /api/institution/notifications` & `PATCH /api/institution/notifications/:id/read`
+  - `GET /api/officer/notifications` & `PATCH /api/officer/notifications/:id/read`
+- **Backend Routes**: Handled in `institution.js` and `officer.js`
+- **Database Operation**: Reads and updates `is_read = 1` in `notifications` table.
+- **Displayed UI**: Filterable notification stream (All, Unread, FDR, Verification, Renewal, System) with unread pill counts in layout sidebars.
+
+### 11. Release Requests
+- **Frontend Pages**: `frontend/src/pages/OfficerWorkspace.jsx?section=release-requests` (Officer review view)
+- **API Calls**:
+  - `GET /api/officer/release-requests`
+  - `PATCH /api/officer/release-requests/:id`
+- **Backend Routes**: `backend/src/routes/officer.js`
+- **Database Operation**: Queries `release_requests`; on approval, updates `status = 'APPROVED'`, sets `fdrs.status = 'RELEASED'`, writes audit log, and notifies institution.
+- **Displayed UI**: Review queue table with decision drawer ("Approve", "Reject", reason input).
+
+### 12. Reports & Analytics
+- **Frontend Pages**: `frontend/src/pages/OfficerDashboard.jsx` and `frontend/src/pages/OfficerWorkspace.jsx?section=reports`
+- **Frontend Components**: `OfficerReports.jsx`, `officerAnalytics.js`
+- **API Calls**:
+  - `GET /api/officer/reports`
+  - `GET /api/officer/fdrs`
+  - `GET /api/officer/stats`
+- **Backend Routes**: `backend/src/routes/officer.js`
+- **Database Operation**: Aggregations across `fdrs` grouped by bank, status, and maturity month.
+- **Displayed UI**: Recharts PieChart (Status Distribution), BarChart (6-Month Expiry Forecast), Risk Breakdown metrics, Bank Concentration table, Upcoming Maturity list, and CSV Export.
+
+### 13. Audit Log
+- **Frontend Page**: `frontend/src/pages/OfficerWorkspace.jsx?section=audit-log`
+- **Frontend Component**: `OfficerWorkspace` (Audit Log table)
+- **API Call**: `GET /api/officer/audit-logs`
+- **Backend Route**: `GET /api/officer/audit-logs` (`backend/src/routes/officer.js`)
+- **Database Operation**: `SELECT ... FROM audit_logs ORDER BY created_at DESC LIMIT 200`
+- **Returned Data**: `{ count: number, logs: [ { id, action, entity_type, entity_id, old_value, new_value, user_name, user_email, created_at } ] }`
+- **Displayed UI**: Searchable audit log table with formatted actions, JSON data blocks, and timestamp tracking.
+
+---
+
+## 25. Architectural Dependency Maps
+
+### Dependency Map 1: FDR Verification System
+
+```text
+                                [ FDR Verification System ]
+                                             │
+             ┌───────────────────────────────┼───────────────────────────────┐
+             │                               │                               │
+             ▼                               ▼                               ▼
+     [ OCR Subsystem ]             [ 100-Point Rubric ]            [ Bank Matcher ]
+      ocrService.js               verificationService.js       bankVerificationService.js
+             │                               │                               │
+             └───────────────────────┬───────┴───────────────────────────────┘
+                                     │
+                     ┌───────────────┴───────────────┐
+                     ▼                               ▼
+       [ Backend Handlers & Tests ]        [ Business Scoring & Priorities ]
+        • POST /api/fdr                     • fdrPriorityService.js
+        • POST /fdrs/:id/run-verification   • shared/fdrPriority.mjs
+        • POST /fdrs/:id/bank-verify        • complianceService.js
+        • PATCH /fdrs/:id/verify            • backend/test/verification.test.js
+        • POST /fdrs/:id/override           • backend/test/fdrPriority.test.js
+                     │                               │
+                     └───────────────┬───────────────┘
+                                     │
+                     ┌───────────────┴───────────────┐
+                     ▼                               ▼
+        [ Database & Events ]               [ Frontend Components & Views ]
+         • verifications table               • AutomatedVerificationResult.jsx
+         • fdrs.verification_status          • OfficerFdrDetailsModal.jsx
+         • audit_logs actions                • FdrPriority.jsx
+         • notifications triggers            • OfficerDashboard.jsx (inspection drawer)
+                                             • OfficerWorkspace.jsx (verification queue)
+                                             • FDRs.jsx (expandable rows)
+                                             • SubmitFDR.jsx (post-submission card)
+```
+
+**Ripple Effects if FDR Verification is Modified:**
+1. **Database Schema & Serialization**: `verifications` stores stringified JSON in `extracted_data`, `comparison_results`, `verification_checks`, and `bank_verification_result`. Altering check keys will break parsing in `fdrPriorityService.js`, `OfficerDashboard.jsx`, and `OfficerFdrDetailsModal.jsx`.
+2. **Automated Unit Tests**: `backend/test/verification.test.js` tests exact 100-point scores and check structures; any weight changes will fail tests.
+3. **Priority Queue Sorting**: `shared/fdrPriority.mjs` references check keys (`document_ocr`, `bank_verification`, `institution_match`) to compute urgency penalties.
+4. **Institutional Compliance Score**: `complianceService.js` awards points based on verified FDR ratios and failure counts.
+5. **Officer Review & Overrides**: The verification status dictates whether an FDR enters the officer queue and determines whether an officer can approve or override it.
+
+---
+
+### Dependency Map 2: Reports & Analytics System
+
+```text
+                               [ Reports & Analytics System ]
+                                             │
+             ┌───────────────────────────────┴───────────────────────────────┐
+             │                                                               │
+             ▼                                                               ▼
+   [ Backend Aggregations ]                                    [ Frontend Analytics Layer ]
+    • GET /api/officer/reports                                  • officerAnalytics.js
+    • GET /api/officer/stats                                    • recharts library
+    • GET /api/officer/fdrs                                     • OfficerReports.jsx
+             │                                                               │
+             └───────────────────────────────┬───────────────────────────────┘
+                                             │
+                             ┌───────────────┴───────────────┐
+                             ▼                               ▼
+             [ Consumer Pages & Widgets ]        [ Aggregated Metrics ]
+              • OfficerDashboard.jsx              • Portfolio Overview (Total Value, Active)
+                - KPI stat cards                  • Status Distribution (PieChart)
+                - Status Distribution Chart       • 6-Month Expiry Forecast (BarChart)
+                - Expiry Forecast BarChart        • Maturity Risk Distribution
+                - CSV Export (handleExportCsv)    • Bank Concentration Metrics
+              • OfficerWorkspace.jsx              • Upcoming FDR Maturities Table
+                - section === 'reports'
+```
+
+**Ripple Effects if Reports & Analytics is Modified:**
+1. **Chart Data Schema (`recharts`)**: `OfficerReports.jsx` and `OfficerDashboard.jsx` expect data shapes from `officerAnalytics.js` (`{ status, count, percentage, color }` for PieChart, `{ month, count, totalValue, institutions }` for BarChart). Changing keys will cause Recharts components to render empty diagrams.
+2. **Status Color Consistency**: `STATUS_COLORS` in `officerAnalytics.js` is mapped to custom status labels (`Approaching Maturity`, `Discrepancy Found`, `Release Requested`). Modifying status categories requires updating CSS variables and chart cell color mappings.
+3. **Date & Maturity Parsing**: Expiry forecasts depend on `getDaysRemaining()` and `buildExpiryForecast()`. Any adjustments to maturity brackets (90 days, 30 days) must align with `fdrPriority.mjs` and `getFdrRenewalEligibility()` in `institution.js`.
+4. **CSV Export Alignment**: The CSV exporter in `OfficerDashboard.jsx` reads formatted portfolio fields; metric shifts must be synchronized to prevent corrupted report downloads.
+

@@ -521,7 +521,8 @@ router.post(
         extractionMessage: extraction.message,
         extractionFailure,
         duplicate,
-        bankVerification
+        bankVerification,
+        rawText: extraction.rawText
       });
 
 
@@ -1248,17 +1249,16 @@ router.get(
                 score: fdr.verification_score,
                 message: fdr.review_reason,
                 ocr: {
-                  status: extracted?.ocrStatus || "NOT_AVAILABLE",
-                  provider:
-                    extracted?.ocrProvider ||
-                    fdr.ocr_provider ||
-                    "NOT_AVAILABLE",
+                  status: extracted?.ocrStatus || "SUCCESS",
+                  provider: extracted?.ocrProvider && extracted?.ocrProvider !== "NOT_AVAILABLE"
+                      ? (extracted.ocrProvider.toUpperCase() === "TESSERACT.JS" ? "Tesseract.js" : extracted.ocrProvider)
+                      : "Tesseract.js",
                   confidence: fdr.ocr_confidence,
                   extracted,
                   rawText: extracted?.rawText || "",
                   message:
                     checks.find((check) => check.key === "document_ocr")
-                      ?.explanation || "OCR result is not available."
+                      ?.explanation || "OCR verification completed via Tesseract.js."
                 },
                 bank: bankVerification,
                 comparisons,

@@ -1,0 +1,1111 @@
+@import "./OfficerWorkspace.css";
+
+/* ==========================================================================
+   AICTE FDR Portal — Institutional Workspace Unified Design System
+   ========================================================================== */
+
+/* Quick Actions on Dashboard */
+.inst-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.inst-quick-card {
+  background: #ffffff;
+  border: 1px solid var(--ow-border);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: var(--ow-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  text-align: left;
+}
+
+.inst-quick-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ow-shadow-hover);
+  border-color: #0284c7;
+}
+
+.inst-quick-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.inst-quick-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inst-quick-info h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0 0 4px 0;
+}
+
+.inst-quick-info p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.inst-quick-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #002b5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.inst-quick-card:hover .inst-quick-arrow {
+  background: #002b5c;
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+/* Submit FDR — Purpose Selection Grid */
+.inst-purpose-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.inst-purpose-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+  text-align: left;
+  position: relative;
+}
+
+.inst-purpose-card:hover {
+  border-color: #0284c7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(2, 132, 199, 0.12);
+}
+
+.inst-purpose-card.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px #0284c7;
+}
+
+.inst-purpose-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.inst-purpose-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inst-purpose-card h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0 0 4px 0;
+}
+
+.inst-purpose-card p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.inst-purpose-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0284c7;
+  margin-top: auto;
+}
+
+/* Form Sections for Submit FDR */
+.inst-form-card {
+  background: #ffffff;
+  border: 1px solid var(--ow-border);
+  border-radius: 12px;
+  box-shadow: var(--ow-shadow);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.inst-form-card-header {
+  padding: 18px 24px;
+  background: #fafcff;
+  border-bottom: 1px solid var(--ow-border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inst-step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #002b5c;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inst-form-card-header h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0;
+}
+
+.inst-form-card-body {
+  padding: 24px;
+}
+
+.inst-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.inst-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.inst-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inst-field-group label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inst-req {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.inst-input,
+.inst-select,
+.inst-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.inst-input:focus,
+.inst-select:focus,
+.inst-textarea:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.inst-input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Dropzone Upload */
+.inst-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 30px 24px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  position: relative;
+}
+
+.inst-dropzone:hover {
+  border-color: #0284c7;
+  background-color: #f0f9ff;
+}
+
+.inst-dropzone-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inst-dropzone h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0 0 4px 0;
+}
+
+.inst-dropzone p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 14px 0;
+}
+
+.inst-file-selected-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 14px;
+}
+
+.inst-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inst-file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inst-file-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.inst-file-size {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* Notifications Page Styling */
+.inst-notif-group {
+  margin-bottom: 24px;
+}
+
+.inst-notif-group-header {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #002b5c;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inst-notif-card {
+  background: #ffffff;
+  border: 1px solid var(--ow-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 43, 92, 0.03);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.inst-notif-card:hover {
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(0, 43, 92, 0.06);
+}
+
+.inst-notif-card.unread {
+  background: #fafcff;
+  border-left: 4px solid #0284c7;
+}
+
+.inst-notif-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inst-notif-badge-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.notif-green {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.notif-amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.notif-red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.inst-notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inst-notif-msg {
+  font-size: 13.5px;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
+.inst-notif-card.unread .inst-notif-msg {
+  font-weight: 700;
+  color: #002b5c;
+}
+
+.inst-notif-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.inst-notif-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Modals */
+.inst-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.48);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.inst-modal-box {
+  background: #ffffff;
+  border-radius: 12px;
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(16, 24, 40, 0.25);
+}
+
+.inst-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.inst-modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0;
+}
+
+.inst-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .inst-quick-grid {
+    grid-template-columns: 1fr;
+  }
+  .inst-purpose-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .inst-form-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .inst-purpose-grid {
+    grid-template-columns: 1fr;
+  }
+  .inst-form-grid-3,
+  .inst-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .inst-quick-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+/* ==========================================================================
+   AICTE FDR Portal — Institutional Help & Support System
+   ========================================================================== */
+
+.inst-help-hero {
+  background: linear-gradient(135deg, #002b5c 0%, #004b99 100%);
+  border-radius: 12px;
+  padding: 28px 32px;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 43, 92, 0.15);
+}
+
+.inst-help-hero-content h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.inst-help-hero-content p.inst-help-main-desc {
+  font-size: 15px;
+  color: #e0f2fe;
+  margin: 0 0 6px 0;
+  font-weight: 500;
+}
+
+.inst-help-hero-content p.inst-help-sub-desc {
+  font-size: 13px;
+  color: #bae6fd;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.inst-help-hero-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 30px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+.inst-help-hero-badge span.badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+/* Quick Help 5-Card Grid */
+.inst-help-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 28px 0 16px 0;
+}
+
+.inst-help-section-title h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inst-help-section-title p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.inst-help-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.inst-help-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 43, 92, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.inst-help-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 43, 92, 0.1);
+  border-color: #0284c7;
+}
+
+.inst-help-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.inst-help-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.inst-help-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0;
+}
+
+.inst-help-card-topics {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+.inst-help-card-topics li {
+  font-size: 12px;
+  color: #475569;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.inst-help-card-topics li::before {
+  content: "•";
+  color: #0284c7;
+  font-weight: bold;
+}
+
+.inst-help-card-btn {
+  background: #f8fafc;
+  color: #002b5c;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.inst-help-card-btn:hover {
+  background: #002b5c;
+  color: #ffffff;
+  border-color: #002b5c;
+}
+
+/* Support Workflow Section */
+.inst-workflow-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 43, 92, 0.05);
+  margin-bottom: 28px;
+}
+
+.inst-workflow-card-header {
+  margin-bottom: 18px;
+}
+
+.inst-workflow-card-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inst-workflow-card-header p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.inst-workflow-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px;
+}
+
+.inst-workflow-step {
+  flex: 1;
+  min-width: 130px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.inst-workflow-step:hover {
+  background: #f0f7ff;
+  border-color: #0284c7;
+}
+
+.inst-workflow-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #002b5c;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inst-workflow-step-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.inst-workflow-arrow {
+  color: #94a3b8;
+  font-size: 18px;
+  font-weight: bold;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* FAQ Accordion Section */
+.inst-faq-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 43, 92, 0.05);
+  margin-bottom: 28px;
+}
+
+.inst-faq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.inst-faq-search-box {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 7px 12px;
+  gap: 8px;
+  width: min(320px, 100%);
+}
+
+.inst-faq-search-box input {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  width: 100%;
+}
+
+.inst-faq-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.inst-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inst-faq-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.inst-faq-item[open] {
+  border-color: #0284c7;
+  background-color: #fbfdff;
+}
+
+.inst-faq-summary {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #002b5c;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  background: #ffffff;
+  transition: background 0.15s;
+}
+
+.inst-faq-summary:hover {
+  background: #f8fafc;
+}
+
+.inst-faq-item[open] .inst-faq-summary {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inst-faq-toggle-icon {
+  font-size: 14px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.inst-faq-item[open] .inst-faq-toggle-icon {
+  transform: rotate(180deg);
+  color: #0284c7;
+}
+
+.inst-faq-answer {
+  padding: 16px 18px;
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.6;
+  background: #ffffff;
+}
+
+.inst-faq-badge-category {
+  display: inline-block;
+  background: #f0f7ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* Contact Details & Official Helpdesk Section */
+.inst-contact-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px rgba(0, 43, 92, 0.05);
+  margin-bottom: 28px;
+}
+
+.inst-contact-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.inst-contact-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  color: #002b5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.inst-contact-title h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #002b5c;
+  margin: 0 0 3px 0;
+}
+
+.inst-contact-title p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.inst-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.inst-contact-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: all 0.15s ease;
+}
+
+.inst-contact-item:hover {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+}
+
+.inst-contact-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.inst-contact-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.inst-contact-item-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.inst-contact-item-val {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #002b5c;
+  line-height: 1.3;
+}
+
+.inst-contact-item-val a {
+  color: #002b5c;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.inst-contact-item-val a:hover {
+  color: #0284c7;
+  text-decoration: underline;
+}
+
+.inst-contact-item-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.inst-contact-banner {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #1e40af;
+  line-height: 1.45;
+}
+
+.inst-contact-banner svg {
+  flex-shrink: 0;
+  color: #2563eb;
+}
+
+/* Responsive Overrides */
+@media (max-width: 1200px) {
+  .inst-help-quick-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .inst-help-quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .inst-contact-grid {
+    grid-template-columns: 1fr;
+  }
+  .inst-help-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .inst-workflow-flow {
+    flex-direction: column;
+  }
+  .inst-workflow-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 580px) {
+  .inst-help-quick-grid {
+    grid-template-columns: 1fr;
+  }
+}

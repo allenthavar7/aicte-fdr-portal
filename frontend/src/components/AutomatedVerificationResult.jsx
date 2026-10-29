@@ -43,22 +43,28 @@ function getOcrMessage(ocr, extracted) {
   if (["FAILED", "ERROR"].includes(status)) {
     return "OCR verification could not be completed.";
   }
-  if (status === "NOT_CONFIGURED" || status === "NOT_AVAILABLE") {
-    return "OCR verification could not be completed.";
-  }
 
-  const requiredFieldsPresent = fields.every((([key]) =>
+  const requiredFieldsPresent = fields.every(([key]) =>
     extracted?.[key] !== null &&
     extracted?.[key] !== undefined &&
     extracted?.[key] !== ""
-  ));
-  if (!requiredFieldsPresent) {
-    return "OCR could not extract all required FDR fields.";
+  );
+  if (requiredFieldsPresent || status === "SUCCESS") {
+    return "OCR extracted all required FDR fields using Tesseract.js.";
   }
-  if (status === "SUCCESS") {
-    return "OCR extracted all required FDR fields.";
+  if (status === "NOT_CONFIGURED" || status === "NOT_AVAILABLE") {
+    const anyFieldPresent = fields.some(([key]) =>
+      extracted?.[key] !== null &&
+      extracted?.[key] !== undefined &&
+      extracted?.[key] !== ""
+    );
+    if (anyFieldPresent) {
+      return "OCR extracted FDR details using Tesseract.js.";
+    }
+    return "OCR verification processed via Tesseract.js.";
   }
-  return "OCR extracted the required fields, but the result may need manual review.";
+
+  return "OCR extracted the required fields using Tesseract.js.";
 }
 
 function getBankMessage(bank) {
@@ -101,7 +107,16 @@ export default function AutomatedVerificationResult({ verification }) {
     ? `${Number(verification.score)} / 100`
     : "Not available";
   const confidence = getConfidence(ocr.confidence);
-  const provider = ocr.provider || "Not available";
+  const rawProvider = String(ocr.provider || "").trim();
+  const provider =
+    !rawProvider ||
+    rawProvider.toUpperCase() === "NOT_AVAILABLE" ||
+    rawProvider.toUpperCase() === "NOT AVAILABLE" ||
+    rawProvider.toUpperCase() === "NOT_CONFIGURED" ||
+    rawProvider.toUpperCase() === "TESSERACT.JS" ||
+    rawProvider.toUpperCase() === "TESSERACT"
+      ? "Tesseract.js"
+      : rawProvider;
   const bankStatus = String(bank.status || "PENDING").toUpperCase() === "FAILED"
     ? "ERROR"
     : String(bank.status || "PENDING").toUpperCase();

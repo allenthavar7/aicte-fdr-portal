@@ -10,13 +10,10 @@ const navigationItems = [
   ["Release Requests", "/officer/release-requests", "↑"],
   ["Reports & Analytics", "/officer/reports", "▥"],
   ["Audit Log", "/officer/audit-log", "◴"],
-  ["Manage Users", "/officer/users", "♙"],
-  ["Master Data", "/officer/master-data", "▤"],
-  ["Settings", "/officer/settings", "⚙"],
-  ["Help & Support", "/officer/help", "?"]
+  ["Settings", "/officer/settings", "⚙"]
 ];
 
-function OfficerSidebar({ releaseCount = 0 }) {
+function OfficerSidebar({ releaseCount = 0, notificationCount = 0 }) {
   const { pathname } = useLocation();
 
   return (
@@ -32,7 +29,7 @@ function OfficerSidebar({ releaseCount = 0 }) {
         {navigationItems.map(([label, href, icon]) => {
           const active = pathname === href;
           const count =
-            href === "/officer/release-requests" ? releaseCount : 0;
+            href === "/officer/release-requests" ? releaseCount : href === "/officer/notifications" ? notificationCount : 0;
 
           return (
             <Link
@@ -54,11 +51,12 @@ function OfficerSidebar({ releaseCount = 0 }) {
 
 export default function OfficerLayout({
   children,
-  releaseCount = 0
+  releaseCount = 0,
+  notificationCount = 0
 }) {
   return (
     <div className="officer-layout">
-      <OfficerSidebar releaseCount={releaseCount} />
+      <OfficerSidebar releaseCount={releaseCount} notificationCount={notificationCount} />
       <main className="officer-main">{children}</main>
     </div>
   );

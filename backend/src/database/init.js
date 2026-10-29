@@ -212,7 +212,11 @@ db.exec(`
 
     fdr_id INTEGER NOT NULL,
 
+    request_type TEXT DEFAULT 'Release',
+
     reason TEXT NOT NULL,
+
+    review_remarks TEXT,
 
     status TEXT NOT NULL DEFAULT 'PENDING',
 

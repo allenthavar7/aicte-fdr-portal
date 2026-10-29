@@ -26,46 +26,50 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 22px;
-  border-bottom: 1px solid #dfe6ee;
+  padding: 18px 24px;
+  border-bottom: 1px solid #cbd5e1;
   background: #fff;
 }
 
 .officer-fdr-modal-header > div > span {
-  color: #64748b;
-  font-size: 12px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .officer-fdr-modal-header h2 {
   margin: 4px 0 0;
-  color: #123b73;
-  font-size: 20px;
+  color: #0a2540;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .officer-fdr-modal-content {
   min-height: 0;
-  padding: 18px;
+  padding: 20px;
   overflow-y: auto;
 }
 
 .officer-fdr-modal-section {
   margin-bottom: 16px;
-  padding: 18px;
-  border: 1px solid #dfe6ee;
-  border-radius: 9px;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
   background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .officer-fdr-modal-section h3 {
-  margin: 0 0 14px;
-  color: #123b73;
-  font-size: 15px;
+  margin: 0 0 16px;
+  color: #0f294a;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .officer-fdr-detail-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px;
+  gap: 14px;
 }
 
 .officer-fdr-detail {
@@ -77,21 +81,25 @@
 .officer-fdr-check-list li div > span {
   display: block;
   margin-bottom: 4px;
-  color: #718196;
-  font-size: 11px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .officer-fdr-detail strong,
 .officer-fdr-document strong {
   display: block;
-  color: #203752;
-  font-size: 13px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .officer-fdr-check-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -103,9 +111,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 12px;
-  border: 1px solid #e5eaf0;
-  border-radius: 7px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
 }
 
 .officer-fdr-check-list li div {
@@ -115,23 +124,29 @@
 .officer-fdr-check-list li div strong {
   display: block;
   margin-bottom: 4px;
-  color: #203752;
-  font-size: 12px;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .officer-fdr-check-list li div > span {
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.45;
+  color: #334155;
+  font-size: 12.5px;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .officer-fdr-check-status {
   flex: 0 0 auto;
-  padding: 4px 8px;
+  padding: 5px 10px;
   border-radius: 999px;
-  background: #eef2f7;
-  color: #475569;
-  font-size: 10px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .officer-fdr-check-pass {
@@ -150,7 +165,7 @@
 }
 
 .officer-fdr-document {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .officer-fdr-document > div {
@@ -159,31 +174,213 @@
 
 .officer-fdr-history-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .officer-fdr-history-list article {
-  padding: 10px 12px;
-  border: 1px solid #e5eaf0;
-  border-radius: 7px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
 }
 
 .officer-fdr-history-list strong {
-  color: #203752;
-  font-size: 12px;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .officer-fdr-history-list span {
   display: block;
   margin-top: 4px;
-  color: #718196;
-  font-size: 11px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .officer-fdr-history-list p {
   margin: 8px 0 0;
+  color: #1e293b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Officer Verification Decision Area */
+.officer-fdr-decision-card {
+  margin-top: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 22px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+.officer-decision-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.officer-decision-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.officer-fdr-decision-card h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0a2540;
+}
+
+.officer-decision-sub {
+  margin: 0 0 16px;
   color: #475569;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.officer-decision-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.officer-decision-message.officer-decision-verified {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.officer-decision-message.officer-decision-rejected {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.officer-decision-message.officer-decision-flagged {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.officer-decision-message.officer-decision-pending {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.officer-decision-icon {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.officer-decision-message strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.officer-decision-message p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.officer-decision-reason-box {
+  margin-bottom: 16px;
+}
+
+.officer-decision-reason-box label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.officer-decision-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.officer-decision-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.officer-decision-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.officer-decision-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.officer-btn-approve {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
+}
+
+.officer-btn-approve:hover:not(:disabled) {
+  background: #15803d;
+  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.4);
+  transform: translateY(-1px);
+}
+
+.officer-btn-reject {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
+}
+
+.officer-btn-reject:hover:not(:disabled) {
+  background: #b91c1c;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.4);
+  transform: translateY(-1px);
+}
+
+.officer-decision-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 @media (max-width: 720px) {
@@ -199,7 +396,7 @@
   }
 
   .officer-fdr-modal-content {
-    padding: 12px;
+    padding: 14px;
   }
 
   .officer-fdr-detail-grid {

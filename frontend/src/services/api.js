@@ -207,6 +207,14 @@ export async function getOfficerReleaseRequests(token) {
   );
 }
 
+export async function getOfficerReleaseRequestDetail(token, requestId) {
+  return getOfficerResource(
+    `/officer/release-requests/${requestId}`,
+    token,
+    "Unable to fetch release request detail"
+  );
+}
+
 export async function reviewOfficerReleaseRequest(
   token,
   requestId,
@@ -360,6 +368,25 @@ export async function runOfficerBankVerification(token, fdrId) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     throw new Error(data?.message || "Unable to run mock bank verification");
+  }
+  return data;
+}
+
+export async function getStatusLogs(token, params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, value);
+    }
+  });
+  const queryString = query.toString();
+  const url = `${API_URL}/dashboard/status-logs${queryString ? `?${queryString}` : ""}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message || "Unable to fetch status logs");
   }
   return data;
 }

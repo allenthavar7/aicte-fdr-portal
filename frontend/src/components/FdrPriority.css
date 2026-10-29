@@ -1,12 +1,12 @@
 .fdr-priority-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-wrap: wrap;
   max-width: 100%;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.35;
   white-space: nowrap;
@@ -19,55 +19,56 @@
 .fdr-priority-badge small {
   flex-basis: 100%;
   color: inherit;
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 500;
   white-space: normal;
 }
 
 .fdr-priority-critical {
-  background: #fff0f0;
-  color: #a51e2d;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .fdr-priority-high {
-  background: #fff2e8;
-  color: #9a3e00;
+  background: #ffedd5;
+  color: #9a3412;
 }
 
 .fdr-priority-medium {
-  background: #fff9df;
-  color: #795b00;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .fdr-priority-low {
-  background: #eaf7ef;
-  color: #17663c;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .fdr-priority-summary {
-  margin: 14px 0;
-  padding: 16px;
-  border: 1px solid #dfe6ee;
-  border-left: 4px solid #7b8da3;
+  margin: 16px 0;
+  padding: 18px;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #64748b;
   border-radius: 8px;
   background: #fff;
-  color: #10233f;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .fdr-priority-summary:has(.fdr-priority-critical) {
-  border-left-color: #c52c3b;
+  border-left-color: #dc2626;
 }
 
 .fdr-priority-summary:has(.fdr-priority-high) {
-  border-left-color: #d76518;
+  border-left-color: #ea580c;
 }
 
 .fdr-priority-summary:has(.fdr-priority-medium) {
-  border-left-color: #c59b14;
+  border-left-color: #d97706;
 }
 
 .fdr-priority-summary:has(.fdr-priority-low) {
-  border-left-color: #23804d;
+  border-left-color: #16a34a;
 }
 
 .fdr-priority-summary-header {
@@ -78,33 +79,38 @@
 }
 
 .fdr-priority-eyebrow {
-  color: #60738e;
-  font-size: 11px;
+  color: #475569;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .fdr-priority-summary h3 {
   margin: 4px 0 0;
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0a2540;
   text-transform: uppercase;
 }
 
 .fdr-priority-total {
-  color: #10233f;
-  font-size: 20px;
+  color: #0a2540;
+  font-size: 22px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
 .fdr-priority-summary h4 {
   margin: 16px 0 8px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0a2540;
 }
 
 .fdr-priority-summary ul {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -115,33 +121,36 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12px;
+  font-size: 13px;
+  color: #1e293b;
 }
 
 .fdr-priority-summary li strong {
-  color: #a3440d;
+  color: #c2410c;
   white-space: nowrap;
+  font-weight: 700;
 }
 
 .fdr-priority-summary p {
   margin: 0;
-  color: #536981;
-  font-size: 12px;
+  color: #334155;
+  font-size: 13px;
 }
 
 .fdr-priority-total-row {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid #e7edf3;
+  border-top: 1px solid #e2e8f0;
   font-weight: 700;
+  color: #0a2540;
 }
 
 @media (max-width: 600px) {
   .fdr-priority-summary {
-    padding: 12px;
+    padding: 14px;
   }
 
   .fdr-priority-total {
-    font-size: 17px;
+    font-size: 18px;
   }
 }

@@ -163,6 +163,23 @@ function ensureVerificationColumns(db) {
     }
   }
 
+  const releaseRequestColumns = new Set(
+    db.prepare("PRAGMA table_info(release_requests)")
+      .all()
+      .map((column) => column.name)
+  );
+
+  const releaseRequestMigrations = [
+    ["request_type", "TEXT DEFAULT 'Release'"],
+    ["review_remarks", "TEXT"]
+  ];
+
+  for (const [column, type] of releaseRequestMigrations) {
+    if (!releaseRequestColumns.has(column)) {
+      db.exec(`ALTER TABLE release_requests ADD COLUMN ${column} ${type}`);
+    }
+  }
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_renewals_old_fdr
       ON renewals(old_fdr_id);

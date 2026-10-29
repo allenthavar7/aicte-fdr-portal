@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FdrPrioritySummary } from "./FdrPriority";
 import AutomatedVerificationResult from "./AutomatedVerificationResult";
+import { postOfficerFdrOverride } from "../services/api";
 import "./OfficerFdrDetailsModal.css";
 
 function formatDate(value) {
@@ -43,8 +44,16 @@ export default function OfficerFdrDetailsModal({
   error,
   openingDocumentId,
   onClose,
-  onOpenDocument
+  onOpenDocument,
+  onDecision
 }) {
+  const [localStatus, setLocalStatus] = useState(null);
+  const [decisionReason, setDecisionReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [lastAction, setLastAction] = useState(null);
+  const [decisionError, setDecisionError] = useState("");
+  const [decisionSuccess, setDecisionSuccess] = useState("");
+
   const record = detail?.fdr || fdr;
   const verification = detail?.verification;
   const extracted = verification?.extracted_data || {};
@@ -54,7 +63,9 @@ export default function OfficerFdrDetailsModal({
     message: verification.review_reason,
     ocr: {
       status: extracted.ocrStatus || "NOT_AVAILABLE",
-      provider: extracted.ocrProvider || verification.source || "Not available",
+      provider: extracted.ocrProvider && extracted.ocrProvider !== "NOT_AVAILABLE"
+        ? (extracted.ocrProvider.toUpperCase() === "TESSERACT.JS" ? "Tesseract.js" : extracted.ocrProvider)
+        : "Tesseract.js",
       confidence: verification.ocr_confidence,
       extracted,
       rawText: extracted.rawText || ""
@@ -62,6 +73,66 @@ export default function OfficerFdrDetailsModal({
     bank: verification.bank_verification,
     comparisons: verification.comparisons || []
   } : null;
+
+  const currentVerificationStatus = localStatus || record?.verification_status;
+  const decisionMessage = (() => {
+    const status = String(currentVerificationStatus || "").toUpperCase();
+    const checks = verification?.checks || [];
+    const bankStatus = String(verification?.bank_verification?.status || "").toUpperCase();
+    const hasFailedChecks = checks.some((c) => String(c.status).toUpperCase() === "FAILED");
+    const hasDiscrepancy = ["FLAGGED", "FAILED"].includes(status) || hasFailedChecks || bankStatus === "FAILED" || bankStatus === "MISMATCH";
+
+    if (status === "VERIFIED" && !hasDiscrepancy) {
+      return "All required FDR details have been successfully verified.";
+    }
+    if (status === "REJECTED") {
+      return "This FDR has been rejected. You may review the discrepancies before recording a new decision.";
+    }
+    if (hasDiscrepancy) {
+      return "Some FDR details could not be matched. Please review the discrepancies before approving this FDR.";
+    }
+    return "All FDR details could not be fully matched. Please review the submitted document and verification results before making a decision.";
+  })();
+
+  const decisionMessageClass = (() => {
+    const status = String(currentVerificationStatus || "").toUpperCase();
+    const checks = verification?.checks || [];
+    const bankStatus = String(verification?.bank_verification?.status || "").toUpperCase();
+    const hasFailedChecks = checks.some((c) => String(c.status).toUpperCase() === "FAILED");
+    const hasDiscrepancy = ["FLAGGED", "FAILED"].includes(status) || hasFailedChecks || bankStatus === "FAILED" || bankStatus === "MISMATCH";
+    if (status === "VERIFIED" && !hasDiscrepancy) return "verified";
+    if (status === "REJECTED") return "rejected";
+    if (hasDiscrepancy) return "flagged";
+    return "pending";
+  })();
+
+  async function handleDecisionClick(decision) {
+    const finalReason =
+      decisionReason.trim() ||
+      (decision === "APPROVE"
+        ? "Approved by regulatory officer verification"
+        : "Rejected by regulatory officer verification");
+    setBusy(true);
+    setLastAction(decision);
+    setDecisionError("");
+    setDecisionSuccess("");
+    try {
+      if (onDecision) {
+        await onDecision(record.id, decision, finalReason);
+      } else {
+        const token = localStorage.getItem("token");
+        await postOfficerFdrOverride(token, record.id, decision, finalReason);
+      }
+      const newStatus = decision === "APPROVE" ? "VERIFIED" : "REJECTED";
+      setLocalStatus(newStatus);
+      setDecisionSuccess(`FDR ${decision === "APPROVE" ? "Approved" : "Rejected"} successfully. Record updated.`);
+      setDecisionReason("");
+    } catch (err) {
+      setDecisionError(err.message || "Unable to record officer decision.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     function closeOnEscape(event) {
@@ -117,7 +188,7 @@ export default function OfficerFdrDetailsModal({
               <Detail label="Issue date" value={formatDate(record.issue_date)} />
               <Detail label="Maturity date" value={formatDate(record.maturity_date)} />
               <Detail label="FDR status" value={record.status} />
-              <Detail label="Verification status" value={record.verification_status} />
+              <Detail label="Verification status" value={currentVerificationStatus} />
               <Detail label="Submitted" value={formatDate(record.created_at)} />
               <Detail label="Address" value={record.address || record.institution?.address} />
               <Detail label="City / State" value={[record.city || record.institution?.city, record.state || record.institution?.state].filter(Boolean).join(", ")} />
@@ -217,6 +288,90 @@ export default function OfficerFdrDetailsModal({
             )) : (
               <p className="ow-subtle">No document is attached to this FDR.</p>
             )}
+          </section>
+
+          {/* Decision Section */}
+          <section className="officer-fdr-modal-section officer-fdr-decision-card">
+            <div className="officer-decision-header">
+              <span className="officer-decision-badge">Final Review & Action</span>
+              <h3>Officer Verification Decision</h3>
+            </div>
+            <p className="officer-decision-sub">
+              Review all extracted values, documents, and checks above before making a final determination.
+            </p>
+
+            <div className={`officer-decision-message officer-decision-${decisionMessageClass}`}>
+              <span className="officer-decision-icon" aria-hidden="true">
+                {decisionMessageClass === "verified" ? "✓" : decisionMessageClass === "rejected" ? "✕" : "⚠"}
+              </span>
+              <div>
+                <strong>
+                  {decisionMessageClass === "verified"
+                    ? "Verification Cleared"
+                    : decisionMessageClass === "rejected"
+                    ? "Verification Rejected"
+                    : "Review Discrepancies"}
+                </strong>
+                <p>{decisionMessage}</p>
+              </div>
+            </div>
+
+            <div className="officer-decision-reason-box">
+              <label htmlFor="fdr-modal-decision-notes">
+                Decision Remark / Audit Notes (optional):
+              </label>
+              <textarea
+                id="fdr-modal-decision-notes"
+                className="officer-decision-textarea"
+                placeholder="Enter audit notes or rationale for officer decision..."
+                value={decisionReason}
+                onChange={(e) => setDecisionReason(e.target.value)}
+                disabled={busy}
+                rows={2}
+              />
+            </div>
+
+            {decisionError && (
+              <div className="ow-error" role="alert" style={{ marginBottom: 12 }}>
+                {decisionError}
+              </div>
+            )}
+
+            {decisionSuccess && (
+              <div
+                className="ow-success"
+                role="status"
+                style={{
+                  marginBottom: 12,
+                  padding: "10px 14px",
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: 6,
+                  fontWeight: 600
+                }}
+              >
+                {decisionSuccess}
+              </div>
+            )}
+
+            <div className="officer-decision-actions">
+              <button
+                type="button"
+                className="officer-decision-btn officer-btn-approve"
+                disabled={busy || currentVerificationStatus === "VERIFIED"}
+                onClick={() => handleDecisionClick("APPROVE")}
+              >
+                ✓ Approve FDR
+              </button>
+              <button
+                type="button"
+                className="officer-decision-btn officer-btn-reject"
+                disabled={busy || currentVerificationStatus === "REJECTED"}
+                onClick={() => handleDecisionClick("REJECT")}
+              >
+                ✕ Reject FDR
+              </button>
+            </div>
           </section>
         </div>
       </section>

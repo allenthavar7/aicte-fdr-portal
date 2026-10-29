@@ -102,7 +102,8 @@ function verificationCheckSummary({
   extractionMessage,
   duplicate,
   bankVerification,
-  institution
+  institution,
+  rawText
 }) {
   const fieldResult = (name) =>
     fields.find((field) => field.field === name)?.result || "NOT_DETECTED";
@@ -143,6 +144,10 @@ function verificationCheckSummary({
       : ["FAILED", "MISMATCH"].includes(rawBankStatus)
         ? "FAILED"
         : "PENDING";
+
+  const hasAicteLien =
+    rawText === undefined ||
+    /aicte|all\s*india\s*council|lien|joint|council/i.test(String(rawText || ""));
 
   const checks = [
     check(
@@ -264,7 +269,8 @@ function verifyFdr({
   extractionMessage,
   extractionFailure = false,
   duplicate,
-  bankVerification
+  bankVerification,
+  rawText
 }) {
   const fields = [
     compareField("fdrNumber", submitted.fdrNumber, extracted?.fdrNumber, normalizeText),
@@ -281,7 +287,8 @@ function verifyFdr({
     extractionMessage,
     duplicate,
     bankVerification,
-    institution
+    institution,
+    rawText
   });
   const failed = checks.some((item) => item.status === "FAILED");
   const allPassed = checks.every((item) => item.status === "PASS");

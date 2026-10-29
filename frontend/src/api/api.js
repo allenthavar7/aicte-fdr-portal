@@ -155,3 +155,23 @@ export async function markAllInstitutionNotificationsRead(token) {
     { method: "PATCH" }
   );
 }
+
+export async function getInstitutionReleaseRequests(token) {
+  return institutionRequest(
+    "/release-requests",
+    token,
+    "Unable to load release requests"
+  );
+}
+
+export async function submitInstitutionReleaseRequest(token, releaseRequest) {
+  return institutionRequest(
+    "/release-requests",
+    token,
+    "Unable to submit release request",
+    {
+      method: "POST",
+      body: JSON.stringify(releaseRequest)
+    }
+  );
+}

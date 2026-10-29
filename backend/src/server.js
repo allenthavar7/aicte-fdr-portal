@@ -6,6 +6,7 @@ const authRoutes = require("./routes/auth");
 const fdrRoutes = require("./routes/fdr");
 const officerRoutes = require("./routes/officer");
 const institutionRoutes = require("./routes/institution");
+const dashboardRoutes = require("./routes/dashboard");
 
 const db = require("./database/database");
 
@@ -44,6 +45,9 @@ app.use("/api/fdr", fdrRoutes);
 app.use("/api/officer", officerRoutes);
 
 app.use("/api/institution", institutionRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 /* =========================================================
    HOME

@@ -18,7 +18,7 @@ function Login() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/login`,
         {
           method: "POST",
           headers: {
@@ -165,26 +165,66 @@ function Login() {
 
         </form>
 
-        {/* DEMO ACCOUNT */}
+        {/* QUICK FILL DEMO ACCOUNTS */}
+        <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #eaecf0" }}>
+          <div style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: "#667085", marginBottom: "12px", textAlign: "center" }}>
+            Demo Quick Login Presets
+          </div>
 
-        <div className="demo-account">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin@abc.ac.in");
+                setPassword("ABC@12345");
+                setError("");
+              }}
+              style={{
+                padding: "8px 10px",
+                borderRadius: "6px",
+                border: "1px solid #b2ddff",
+                background: "#eff8ff",
+                color: "#175cd3",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                textAlign: "center"
+              }}
+            >
+              🏢 Fill Institution (ABC)
+            </button>
 
-          <strong>Demo Institution Account</strong>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("officer@aicte.gov.in");
+                setPassword("AICTE@12345");
+                setError("");
+              }}
+              style={{
+                padding: "8px 10px",
+                borderRadius: "6px",
+                border: "1px solid #d0d5dd",
+                background: "#f8fafc",
+                color: "#344054",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                textAlign: "center"
+              }}
+            >
+              🛡️ Fill AICTE Officer
+            </button>
+          </div>
 
-          <p>
-            VJTI Engineering College
-          </p>
-
-          <p>
-            <span>Email:</span>{" "}
-            admin@vjti.ac.in
-          </p>
-
-          <p>
-            <span>Password:</span>{" "}
-            AICTE@12345
-          </p>
-
+          <div style={{ background: "#f8fafc", border: "1px solid #eaecf0", borderRadius: "8px", padding: "12px", fontSize: "12px", color: "#475467" }}>
+            <div style={{ marginBottom: "8px" }}>
+              <strong style={{ color: "#1d2939" }}>Institution:</strong> admin@abc.ac.in &nbsp;|&nbsp; <code>ABC@12345</code>
+            </div>
+            <div>
+              <strong style={{ color: "#1d2939" }}>Officer:</strong> officer@aicte.gov.in &nbsp;|&nbsp; <code>AICTE@12345</code>
+            </div>
+          </div>
         </div>
 
       </div>

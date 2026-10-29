@@ -277,7 +277,7 @@ Run:
 node src/database/seed.js
 ```
 
-This creates the existing VJTI/officer demo accounts and loads the centralized
+This creates the existing ABC/officer demo accounts and loads the centralized
 synthetic analytics fixture from `shared/officerDemoData.json`. The fixture adds
 five institutions, ten non-login demo institution users, fourteen FDRs, three
 linked renewal examples, and one release-request example. It is idempotent:
@@ -348,10 +348,10 @@ Open that URL in the browser.
 
 ```text
 Name:
-VJTI Engineering College
+ABC
 
 Email:
-admin@vjti.ac.in
+admin@abc.ac.in
 
 Password:
 AICTE@12345
@@ -632,7 +632,7 @@ Example request:
 
 ```json
 {
-  "email": "admin@vjti.ac.in",
+  "email": "admin@abc.ac.in",
   "password": "AICTE@12345"
 }
 ```
